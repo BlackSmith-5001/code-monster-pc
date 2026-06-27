@@ -582,12 +582,17 @@ function getTimedHints(current, elapsed, timeLimit, mode = "normal") {
 }
 
 const SOUND_FILES = {
-  ok: "/sounds/cast.mp3",
-  critical: "/sounds/critical.mp3",
-  victory: "/sounds/victory.mp3",
-  levelup: "/sounds/levelup.mp3",
-  ng: "/sounds/damage.mp3",
-  click: "/sounds/click.mp3",
+  ok: ["/sounds/se-correct.mp3", "/sounds/cast.mp3"],
+  critical: ["/sounds/se-critical.mp3", "/sounds/critical.mp3"],
+  victory: ["/sounds/se-clear.mp3", "/sounds/victory.mp3"],
+  levelup: ["/sounds/se-unlock.mp3", "/sounds/levelup.mp3"],
+  ng: ["/sounds/se-wrong.mp3", "/sounds/damage.mp3"],
+  click: ["/sounds/se-click.mp3", "/sounds/click.mp3"],
+};
+
+const BGM_FILES = {
+  battle: ["/sounds/bgm-battle.mp3"],
+  menu: ["/sounds/bgm-title.mp3", "/sounds/bgm-menu.mp3"],
 };
 
 const activeSoundAudios = new Set();
@@ -637,17 +642,58 @@ function playBeepFallback(type, enabled) {
   setTimeout(() => ctx.close(), s.duration * 1000 + 80);
 }
 
+function getAudioSources(source) {
+  return Array.isArray(source) ? source.filter(Boolean) : [source].filter(Boolean);
+}
+
+function playAudioWithFallback(audio, sources, onFallbackExhausted) {
+  const queue = getAudioSources(sources);
+  let sourceIndex = 0;
+  let settled = false;
+
+  const trySource = () => {
+    if (sourceIndex >= queue.length) {
+      onFallbackExhausted?.();
+      return;
+    }
+
+    settled = false;
+    audio.src = queue[sourceIndex];
+
+    const playPromise = audio.play();
+
+    if (playPromise) {
+      playPromise
+        .then(() => {
+          settled = true;
+        })
+        .catch(() => {
+          sourceIndex += 1;
+          trySource();
+        });
+    }
+  };
+
+  audio.addEventListener("error", () => {
+    if (settled) return;
+    sourceIndex += 1;
+    trySource();
+  });
+
+  trySource();
+}
+
 function playSound(type, enabled) {
   if (!enabled) return null;
 
-  const src = SOUND_FILES[type];
+  const sources = SOUND_FILES[type];
 
-  if (!src) {
+  if (!sources) {
     playBeepFallback(type, enabled);
     return null;
   }
 
-  const audio = new Audio(src);
+  const audio = new Audio();
   audio.volume = type === "critical" || type === "levelup" ? 0.45 : 0.35;
 
   activeSoundAudios.add(audio);
@@ -658,12 +704,7 @@ function playSound(type, enabled) {
 
   audio.addEventListener("ended", cleanup);
 
-  audio.addEventListener("error", () => {
-    cleanup();
-    playBeepFallback(type, enabled);
-  });
-
-  audio.play().catch(() => {
+  playAudioWithFallback(audio, sources, () => {
     cleanup();
     playBeepFallback(type, enabled);
   });
@@ -1043,22 +1084,14 @@ export default function App() {
   function startBgm() {
     if (!soundEnabled) return;
 
-    if (!bgmRef.current) {
-      bgmRef.current = new Audio("/sounds/bgm-battle.mp3");
-      bgmRef.current.loop = true;
-      bgmRef.current.volume = 0.18;
-    }
+    stopBgm();
 
-    bgmRef.current.pause();
-    bgmRef.current.currentTime = 0;
+    const audio = new Audio();
+    audio.loop = true;
+    audio.volume = 0.18;
+    bgmRef.current = audio;
 
-    const playPromise = bgmRef.current.play();
-
-    if (playPromise) {
-      playPromise.catch(() => {
-        // ブラウザに止められた場合は無視。クリック後なら再生されやすいです。
-      });
-    }
+    playAudioWithFallback(audio, BGM_FILES.battle);
   }
 
   function stopBgm() {
@@ -1066,21 +1099,24 @@ export default function App() {
 
     bgmRef.current.pause();
     bgmRef.current.currentTime = 0;
+    bgmRef.current = null;
   }
 
   function startMenuBgm() {
     if (!soundEnabled) return;
 
-    if (!menuBgmRef.current) {
-      menuBgmRef.current = new Audio("/sounds/bgm-menu.mp3");
-      menuBgmRef.current.loop = true;
-      menuBgmRef.current.volume = 0.12;
+    if (menuBgmRef.current && !menuBgmRef.current.paused) {
+      return;
     }
 
-    menuBgmRef.current.play().catch(() => {
-      // ブラウザの自動再生制限に止められた場合は無視。
-      // ボタン操作など、ユーザー操作後なら再生されやすいです。
-    });
+    stopMenuBgm();
+
+    const audio = new Audio();
+    audio.loop = true;
+    audio.volume = 0.12;
+    menuBgmRef.current = audio;
+
+    playAudioWithFallback(audio, BGM_FILES.menu);
   }
 
   function stopMenuBgm() {
@@ -1088,6 +1124,7 @@ export default function App() {
 
     menuBgmRef.current.pause();
     menuBgmRef.current.currentTime = 0;
+    menuBgmRef.current = null;
   }
 
   function handleStart(level) {
