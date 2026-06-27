@@ -1106,10 +1106,6 @@ export default function App() {
     const firstEncounter = getEncounterFromDeck(newEncounterDeck, 0, level);
     const newEnemy = firstEncounter.enemy;
     const firstQuestion = firstEncounter.question;
-    const startTimeLimit = activeMode === "debug"
-      ? LEVELS[level].timeLimit + 25
-      : LEVELS[level].timeLimit;
-
     setSave((prev) => {
       const nextStagePlays = [...(prev.stagePlays || [0, 0, 0, 0])];
       const seen = new Set(prev.monstersSeen || []);
@@ -1142,8 +1138,8 @@ export default function App() {
     setShowDetails(false);
     setBattleLog(
       activeMode === "debug"
-        ? `🐞 デバッグダンジョンに潜入！ ${newEnemy.name} がバグ憑き呪文を守っている！ 制限時間は1問 ${startTimeLimit}秒！`
-        : `${LEVELS[level].stageName}に潜入！ ${newEnemy.name} が現れた！ 制限時間は1問 ${startTimeLimit}秒！`
+        ? `🐞 ${newEnemy.name} 出現！ バグ憑きコードを正しい形に修復しよう。`
+        : `${newEnemy.name} 出現！ お手本コードを正確に唱えよう。`
     );
     setRoundId((r) => r + 1);
 
@@ -1401,10 +1397,6 @@ export default function App() {
     const encounter = getEncounterFromDeck(encounterDeck, nextQuestionCount, selectedLevel);
     const newEnemy = encounter.enemy;
     const nextQuestion = encounter.question;
-    const stageTimeLimit = selectedMode === "debug"
-      ? LEVELS[selectedLevel].timeLimit + 25
-      : LEVELS[selectedLevel].timeLimit;
-
     setSave((prev) => {
       const seen = new Set(prev.monstersSeen || []);
 
@@ -1430,8 +1422,8 @@ export default function App() {
 
     setBattleLog(
       selectedMode === "debug"
-        ? `${newEnemy.name} が新しいバグ憑き呪文を持って現れた！ このダンジョンの制限時間は ${stageTimeLimit}秒！`
-        : `${newEnemy.name} が新たに立ちはだかった！ このステージの制限時間は ${stageTimeLimit}秒！`
+        ? `${newEnemy.name} 出現！ 次のバグ憑きコードを修復しよう。`
+        : `${newEnemy.name} 出現！ 次の呪文へ進もう。`
     );
 
     startBgm();
@@ -1641,9 +1633,9 @@ export default function App() {
                 setMenuScreen("stageSelect");
 
                 if (mode === "normal") {
-                  setBattleLog("ノーマルモードを選択中。お手本コードを正確に入力して、Python呪文の型を覚えよう。");
+                  setBattleLog("ノーマルモード：お手本コードを正確に唱える冒険です。");
                 } else {
-                  setBattleLog("デバッグダンジョンを選択中。バグ憑き呪文を見て、正しいPythonコードに修復しよう。ヒント多めの初心者仕様です。");
+                  setBattleLog("デバッグダンジョン：間違いを見つけて正しく直す冒険です。");
                 }
               }}
             />
@@ -2998,7 +2990,7 @@ function TitleHero({ soundEnabled, onPlayMenuBgm }) {
           }}
         >
           <TitleBadge>🧙 ノーマル写経</TitleBadge>
-          <TitleBadge>🐞 デバッグダンジョン構想</TitleBadge>
+          <TitleBadge>🐞 デバッグLv.5解放</TitleBadge>
           <TitleBadge>📘 図鑑収集予定</TitleBadge>
         </div>
 
