@@ -584,7 +584,7 @@ function getTimedHints(current, elapsed, timeLimit, mode = "normal") {
 const SOUND_FILES = {
   ok: ["/sounds/se-correct.mp3", "/sounds/cast.mp3"],
   critical: ["/sounds/se-critical.mp3", "/sounds/critical.mp3"],
-  victory: ["/sounds/se-clear.mp3", "/sounds/victory.mp3"],
+  victory: ["/sounds/victory.mp3"],
   levelup: ["/sounds/se-unlock.mp3", "/sounds/levelup.mp3"],
   ng: ["/sounds/se-wrong.mp3", "/sounds/damage.mp3"],
   click: ["/sounds/se-click.mp3", "/sounds/click.mp3"],
@@ -2699,6 +2699,7 @@ function StageSelectPanel({ selectedMode, save, recommendedStage, battleLog, onS
             Array.isArray(monster.levels) ? monster.levels.includes(i) : true
           ).length;
           const playCount = save.stagePlays?.[i] || 0;
+          const [stageLevel, stageTheme] = lv.label.split(/\s+/, 2);
 
           return (
             <button
@@ -2711,9 +2712,9 @@ function StageSelectPanel({ selectedMode, save, recommendedStage, battleLog, onS
               {recommended && <span className="stage-select-card__recommend">おすすめ</span>}
               <div className="stage-select-card__title">
                 <span>{lv.emoji}</span>
-                <b>{lv.label}</b>
+                <b>{stageLevel} {lv.stageName}</b>
               </div>
-              <div className="stage-select-card__name">{lv.stageName} / {lv.enemyBase}戦</div>
+              <div className="stage-select-card__name">テーマ: {stageTheme || "基礎"}</div>
               <p>{STAGE_LEARNING_THEMES[i] || "学習テーマ準備中"}</p>
               <div className="stage-select-card__meta">
                 <span>問題 {questionCount}問</span>
