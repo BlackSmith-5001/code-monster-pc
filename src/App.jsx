@@ -922,6 +922,7 @@ export default function App() {
   const [largeTextMode, setLargeTextMode] = useState(false);
   const [menuScreen, setMenuScreen] = useState("title");
   const [debugTutorialPrompted, setDebugTutorialPrompted] = useState(false);
+  const [debugLockNotice, setDebugLockNotice] = useState(false);
   const [battleLog, setBattleLog] = useState(
     "コードモンスターの街で冒険の準備中。まずは半角スペースの剣を研いでおこう。"
   );
@@ -1658,6 +1659,13 @@ export default function App() {
               }}
               onSelectMode={(mode) => {
                 playSound("click", soundEnabled);
+                if (mode === "debug" && !debugDungeonUnlocked) {
+                  setDebugLockNotice(true);
+                  setBattleLog(`🔒 デバッグダンジョンは魔術師Lv.${DEBUG_UNLOCK_LEVEL}で解放されます。`);
+                  playSound("ng", soundEnabled);
+                  return;
+                }
+
                 setSelectedMode(mode);
 
                 if (mode === "debug" && !save.debugTutorialCompleted) {
@@ -1676,6 +1684,19 @@ export default function App() {
                 }
               }}
             />
+          )}
+
+          {debugLockNotice && (
+            <div className="debug-lock-modal" role="dialog" aria-modal="true" onClick={() => setDebugLockNotice(false)}>
+              <section className="debug-lock-modal__panel" onClick={(event) => event.stopPropagation()}>
+                <div className="debug-lock-modal__icon">🔒</div>
+                <h2>デバッグダンジョンはまだ封印中</h2>
+                <p>
+                  魔術師Lv.{DEBUG_UNLOCK_LEVEL}で解放されます。まずはノーマルモードでPython呪文の型に慣れよう。
+                </p>
+                <button type="button" onClick={() => setDebugLockNotice(false)}>わかった</button>
+              </section>
+            </div>
           )}
 
           {menuScreen === "debugTutorial" && (
@@ -2797,17 +2818,18 @@ function DebugTutorialScreen({ onBack, onComplete }) {
               gap: 8,
               color: "#fde68a",
               fontWeight: "bold",
+              fontSize: "clamp(1.08rem, 2.6vw, 1.42rem)",
             }}
           >
-            <span style={{ fontSize: 28 }}>{step.icon || "🔧"}</span>
+            <span style={{ fontSize: 34 }}>{step.icon || "🔧"}</span>
             {step.title}
           </span>
-          <span style={{ color: "#c4b5fd", fontSize: 12 }}>STEP {progress}</span>
+          <span style={{ color: "#c4b5fd", fontSize: 14, fontWeight: 900 }}>STEP {progress}</span>
         </div>
 
         {(isIntro || isComplete) && (
           <div>
-            <p style={{ color: "#f8fafc", lineHeight: 1.8, marginTop: 0 }}>{step.body}</p>
+            <p style={{ color: "#f8fafc", lineHeight: 1.8, marginTop: 0, fontSize: "clamp(1rem, 2.5vw, 1.2rem)" }}>{step.body}</p>
             <div
               style={{
                 background: "rgba(15,23,42,0.62)",
@@ -2816,6 +2838,8 @@ function DebugTutorialScreen({ onBack, onComplete }) {
                 padding: 12,
                 color: "#fef3c7",
                 marginBottom: 16,
+                fontSize: "clamp(0.98rem, 2.4vw, 1.12rem)",
+                lineHeight: 1.7,
               }}
             >
               {isIntro
@@ -2843,7 +2867,7 @@ function DebugTutorialScreen({ onBack, onComplete }) {
 
         {isQuestion && (
           <div>
-            <p style={{ color: "#e9d5ff", lineHeight: 1.7, marginTop: 0 }}>{step.prompt}</p>
+            <p style={{ color: "#e9d5ff", lineHeight: 1.7, marginTop: 0, fontSize: "clamp(1rem, 2.5vw, 1.2rem)" }}>{step.prompt}</p>
             <div
               style={{
                 background: "rgba(2,6,23,0.74)",
@@ -2852,7 +2876,7 @@ function DebugTutorialScreen({ onBack, onComplete }) {
                 padding: "14px 16px",
                 color: "#fecaca",
                 fontFamily: "monospace",
-                fontSize: "clamp(1rem, 3.8vw, 1.35rem)",
+                fontSize: "clamp(1.22rem, 4.2vw, 1.65rem)",
                 marginBottom: 14,
                 textAlign: "center",
               }}
@@ -2863,7 +2887,7 @@ function DebugTutorialScreen({ onBack, onComplete }) {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
                 gap: 10,
               }}
             >
@@ -2880,7 +2904,7 @@ function DebugTutorialScreen({ onBack, onComplete }) {
                     style={{
                       border: `1px solid ${correct ? "#34d399" : selected ? "#fbbf24" : "rgba(148,163,184,0.5)"}`,
                       borderRadius: 14,
-                      padding: "12px 10px",
+                      padding: "14px 12px",
                       background: correct
                         ? "rgba(22,163,74,0.26)"
                         : selected
@@ -2888,6 +2912,7 @@ function DebugTutorialScreen({ onBack, onComplete }) {
                           : "rgba(15,23,42,0.72)",
                       color: "#f8fafc",
                       fontWeight: "bold",
+                      fontSize: "clamp(1rem, 2.5vw, 1.16rem)",
                       cursor: feedback ? "default" : "pointer",
                     }}
                   >
@@ -2907,6 +2932,7 @@ function DebugTutorialScreen({ onBack, onComplete }) {
                   borderRadius: 14,
                   padding: 12,
                   color: "#f8fafc",
+                  fontSize: "clamp(0.96rem, 2.3vw, 1.08rem)",
                 }}
               >
                 <b>{feedback.message}</b>
@@ -3210,7 +3236,8 @@ function ModeSelectPanel({
           ? "バグ憑き呪文を正しいコードに修復するモード。ヒント多めで、超初心者でも挑戦できます。"
           : "最初に短いチュートリアルで、日本語の誤字直しからPython修復へ橋渡しします。"
         : `魔術師Lv.${debugUnlockLevel}で解放。まずはノーマルモードでPython呪文の型に慣れよう。`,
-      enabled: debugDungeonUnlocked,
+      enabled: true,
+      locked: !debugDungeonUnlocked,
       color: "#f97316",
     },
   ];
@@ -3256,10 +3283,8 @@ function ModeSelectPanel({
             <button
               key={mode.id}
               onClick={() => {
-                if (!mode.enabled) return;
                 onSelectMode(mode.id);
               }}
-              disabled={!mode.enabled}
               style={{
                 background: active
                   ? `linear-gradient(135deg, ${mode.color}33, rgba(2,6,23,0.95))`
@@ -3269,8 +3294,8 @@ function ModeSelectPanel({
                 padding: 14,
                 textAlign: "left",
                 color: "#e2e8f0",
-                cursor: mode.enabled ? "pointer" : "not-allowed",
-                opacity: mode.enabled ? 1 : 0.78,
+                cursor: "pointer",
+                opacity: mode.locked ? 0.68 : 1,
                 boxShadow: active ? `0 0 22px ${mode.color}33` : "none",
               }}
             >
