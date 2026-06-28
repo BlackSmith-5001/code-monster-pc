@@ -168,6 +168,7 @@ const INITIAL_SAVE = {
   debugCleanses: 0,
   monstersSeen: [],
   monstersDefeatedIds: [],
+  linkedMonsterIds: [],
   soundEnabled: true,
   lastSelectedMode: "normal",
   lastSelectedLevel: 0,
@@ -214,7 +215,7 @@ function sanitizeLevel(value) {
 
 function sanitizeMonsterBookFilters(value) {
   const filters = value && typeof value === "object" ? value : {};
-  const status = ["all", "seen", "unseen", "defeated"].includes(filters.status)
+  const status = ["all", "seen", "unseen", "defeated", "linked"].includes(filters.status)
     ? filters.status
     : INITIAL_SAVE.monsterBookFilters.status;
   const rarity = ["all", "common", "uncommon", "rare", "epic"].includes(filters.rarity)
@@ -267,6 +268,7 @@ function sanitizeSave(parsed) {
     debugCleanses: sanitizeNumber(source.debugCleanses, INITIAL_SAVE.debugCleanses),
     monstersSeen: sanitizeStringArray(source.monstersSeen, INITIAL_SAVE.monstersSeen),
     monstersDefeatedIds: sanitizeStringArray(source.monstersDefeatedIds, INITIAL_SAVE.monstersDefeatedIds),
+    linkedMonsterIds: sanitizeStringArray(source.linkedMonsterIds, INITIAL_SAVE.linkedMonsterIds),
     soundEnabled: typeof source.soundEnabled === "boolean" ? source.soundEnabled : INITIAL_SAVE.soundEnabled,
     lastSelectedMode: sanitizeMode(source.lastSelectedMode),
     lastSelectedLevel: sanitizeLevel(source.lastSelectedLevel),
@@ -820,6 +822,10 @@ function shuffleArray(items) {
   }
 
   return copied;
+}
+
+function normalizeTransferCode(value) {
+  return String(value || "").trim().toUpperCase();
 }
 
 function buildQuestionDeck(level, size = REQUIRED_QUESTIONS_PER_STAGE) {
@@ -1734,6 +1740,24 @@ export default function App() {
               <MonsterBookPanel
                 monstersSeen={monstersSeen}
                 monstersDefeatedIds={monstersDefeatedIds}
+                linkedMonsterIds={save.linkedMonsterIds}
+                onLinkMonster={(monsterId) => {
+                  setSave((prev) => {
+                    const defeated = new Set(prev.monstersDefeatedIds || []);
+                    const seen = new Set(prev.monstersSeen || []);
+                    const linked = new Set(prev.linkedMonsterIds || []);
+
+                    if (defeated.has(monsterId) || seen.has(monsterId) || linked.has(monsterId)) {
+                      return prev;
+                    }
+
+                    linked.add(monsterId);
+                    return {
+                      ...prev,
+                      linkedMonsterIds: Array.from(linked),
+                    };
+                  });
+                }}
                 initialFilters={save.monsterBookFilters}
                 onFiltersChange={(filters) => {
                   setSave((prev) => {
@@ -3716,16 +3740,19 @@ function DetailBox({ title, color, children }) {
   );
 }
 
-function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, initialFilters, onFiltersChange }) {
+function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds, onLinkMonster, initialFilters, onFiltersChange }) {
   const [selectedMonster, setSelectedMonster] = useState(null);
   const savedFilters = sanitizeMonsterBookFilters(initialFilters);
   const [statusFilter, setStatusFilter] = useState(savedFilters.status);
   const [rarityFilter, setRarityFilter] = useState(savedFilters.rarity);
   const [habitatFilter, setHabitatFilter] = useState(savedFilters.habitat);
   const [searchText, setSearchText] = useState(savedFilters.search);
+  const [linkCode, setLinkCode] = useState("");
+  const [linkResult, setLinkResult] = useState(null);
   const entries = getMonsterBookEntries();
   const seenSet = new Set(monstersSeen || []);
   const defeatedSet = new Set(monstersDefeatedIds || []);
+  const linkedSet = new Set(linkedMonsterIds || []);
   const habitats = ["はじまりの草原", "ことばの森", "演算の洞窟", "分岐の火山", "関数の海", "リストの遺跡", "繰り返しの塔", "バグの深淵", "その他"];
   const rarityOrder = ["common", "uncommon", "rare", "epic"];
   const search = searchText.trim().toLowerCase();
@@ -3739,8 +3766,48 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, initialFilters, o
     });
   }, [statusFilter, rarityFilter, habitatFilter, searchText, onFiltersChange]);
 
+  function submitLinkCode(event) {
+    event.preventDefault();
+
+    const normalizedCode = normalizeTransferCode(linkCode);
+    const matchedMonster = entries.find((monster) =>
+      [monster.transferCode, monster.password].some((code) => normalizeTransferCode(code) === normalizedCode)
+    );
+
+    if (!normalizedCode) {
+      setLinkResult({ type: "ng", text: "転送呪文を入力してください。" });
+      return;
+    }
+
+    if (!matchedMonster) {
+      setLinkResult({ type: "ng", text: "この転送呪文に合うモンスターは見つかりませんでした。" });
+      return;
+    }
+
+    const defeated = defeatedSet.has(matchedMonster.id);
+    const seen = seenSet.has(matchedMonster.id);
+    const linked = linkedSet.has(matchedMonster.id);
+
+    if (!defeated && !seen && !linked) {
+      onLinkMonster?.(matchedMonster.id);
+    }
+
+    setLinkResult({
+      type: "ok",
+      text: defeated
+        ? `${matchedMonster.name} はすでに討伐済みです。`
+        : seen
+          ? `${matchedMonster.name} はすでに発見済みです。`
+          : linked
+            ? `${matchedMonster.name} はすでに連携済みです。`
+            : `${matchedMonster.name} を連携しました！図鑑では姿と生息地だけが開放されます。`,
+    });
+    setLinkCode("");
+  }
+
   const discoveredCount = entries.filter((monster) => seenSet.has(monster.id)).length;
   const defeatedCount = entries.filter((monster) => defeatedSet.has(monster.id)).length;
+  const linkedOnlyCount = entries.filter((monster) => linkedSet.has(monster.id) && !seenSet.has(monster.id) && !defeatedSet.has(monster.id)).length;
   const rarityStats = rarityOrder.map((rarity) => ({
     rarity,
     label: RARITY_LABELS[rarity] || rarity,
@@ -3750,11 +3817,20 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, initialFilters, o
   }));
 
   const filteredEntries = entries
-    .map((monster, index) => ({ monster, number: index + 1, seen: seenSet.has(monster.id), defeated: defeatedSet.has(monster.id) }))
-    .filter(({ monster, seen, defeated }) => {
-      if (statusFilter === "seen" && !seen) return false;
-      if (statusFilter === "unseen" && seen) return false;
+    .map((monster, index) => {
+      const defeated = defeatedSet.has(monster.id);
+      const seen = seenSet.has(monster.id);
+      const linked = linkedSet.has(monster.id);
+      const visible = defeated || seen || linked;
+      const statusClass = defeated ? "defeated" : seen ? "seen" : linked ? "linked" : "unseen";
+
+      return { monster, number: index + 1, seen, defeated, linked, visible, statusClass };
+    })
+    .filter(({ monster, statusClass, visible, defeated }) => {
+      if (statusFilter === "seen" && statusClass !== "seen") return false;
+      if (statusFilter === "unseen" && visible) return false;
       if (statusFilter === "defeated" && !defeated) return false;
+      if (statusFilter === "linked" && statusClass !== "linked") return false;
       if (rarityFilter !== "all" && monster.rarity !== rarityFilter) return false;
       if (habitatFilter !== "all" && monster.habitat !== habitatFilter) return false;
       if (!search) return true;
@@ -3771,9 +3847,33 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, initialFilters, o
         <div className="monster-book__summary">
           <span>発見 {discoveredCount} / {entries.length}</span>
           <span>討伐 {defeatedCount} / {entries.length}</span>
+          <span>連携 {linkedOnlyCount}</span>
           <span>表示 {filteredEntries.length} 件</span>
         </div>
       </div>
+
+      <form className="monster-book__filters" onSubmit={submitLinkCode}>
+        <label className="monster-book__field monster-book__field--wide">
+          <span>転送呪文</span>
+          <input
+            type="text"
+            value={linkCode}
+            onChange={(event) => setLinkCode(event.target.value)}
+            placeholder="例: AKA_SLIME"
+            autoCapitalize="characters"
+            spellCheck="false"
+          />
+        </label>
+        <label className="monster-book__field">
+          <span>連携</span>
+          <button type="submit" className="primary-action">入力する</button>
+        </label>
+        {linkResult && (
+          <div className="monster-book__field monster-book__field--search" style={{ color: linkResult.type === "ok" ? "#bbf7d0" : "#fecaca" }}>
+            {linkResult.text}
+          </div>
+        )}
+      </form>
 
       <div className="monster-book__rarityStats">
         {rarityStats.map((stat) => (
@@ -3792,6 +3892,7 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, initialFilters, o
             <option value="seen">発見済み</option>
             <option value="unseen">未発見</option>
             <option value="defeated">討伐済み</option>
+            <option value="linked">連携済み</option>
           </select>
         </label>
         <label className="monster-book__field">
@@ -3815,27 +3916,28 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, initialFilters, o
       </div>
 
       <div className="monster-book__grid">
-        {filteredEntries.map(({ monster, number, seen, defeated }) => {
+        {filteredEntries.map(({ monster, number, seen, defeated, linked, visible, statusClass }) => {
           const rarityColor = RARITY_COLORS[monster.rarity] || "#94a3b8";
+          const statusLabel = defeated ? "討伐済み" : seen ? "発見済み" : linked ? "連携済み" : "未発見";
           return (
             <button
               type="button"
               key={monster.id}
-              className={["monster-book-card", seen ? "monster-book-card--seen" : "monster-book-card--unseen", defeated ? "monster-book-card--defeated" : "", monster.rarity === "rare" || monster.rarity === "epic" ? "monster-book-card--glow" : ""].filter(Boolean).join(" ")}
+              className={["monster-book-card", visible ? "monster-book-card--seen" : "monster-book-card--unseen", `monster-book-card--${statusClass}`, monster.rarity === "rare" || monster.rarity === "epic" ? "monster-book-card--glow" : ""].filter(Boolean).join(" ")}
               style={{ "--rarity-color": rarityColor, "--rarity-glow": RARITY_GLOW[monster.rarity] || RARITY_GLOW.common }}
-              onClick={() => setSelectedMonster({ monster, number, seen, defeated })}
+              onClick={() => setSelectedMonster({ monster, number, seen, defeated, linked, visible })}
             >
               <div className="monster-book-card__top">
                 <span className="monster-book-card__number">No.{String(number).padStart(3, "0")}</span>
-                <span className="monster-book-card__status">{defeated ? "討伐済み" : seen ? "発見済み" : "未発見"}</span>
+                <span className="monster-book-card__status">{statusLabel}</span>
               </div>
               <div className="monster-book-card__imageBox">
-                {seen ? <img src={monster.image} alt={monster.name} className="monster-book-card__image" /> : <div className="monster-book-card__unknown">？？？</div>}
+                {visible ? <img src={monster.image} alt={seen || defeated ? monster.name : "連携済みモンスター"} className="monster-book-card__image" /> : <div className="monster-book-card__unknown">？？？</div>}
               </div>
-              <div className="monster-book-card__name">{seen ? monster.name : "？？？"}</div>
+              <div className="monster-book-card__name">{seen || defeated ? monster.name : "？？？"}</div>
               <div className="monster-book-card__meta">
                 <span>{RARITY_LABELS[monster.rarity] || monster.rarity}</span>
-                <span>{monster.habitat}</span>
+                <span>{visible ? monster.habitat : "生息地不明"}</span>
               </div>
               {seen && <div className="monster-book-card__type">{monster.type}</div>}
             </button>
@@ -3846,17 +3948,19 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, initialFilters, o
       {filteredEntries.length === 0 && <div className="monster-book__empty">条件に合うモンスターはいません。フィルタや検索語を変えてみてください。</div>}
 
       {selectedMonster && (
-        <FullScreenOverlay title={"🐲 " + (selectedMonster.seen ? selectedMonster.monster.name : "未発見モンスター")} onClose={() => setSelectedMonster(null)}>
-          <MonsterDetail monster={selectedMonster.monster} number={selectedMonster.number} seen={selectedMonster.seen} defeated={selectedMonster.defeated} />
+        <FullScreenOverlay title={"🐲 " + (selectedMonster.seen || selectedMonster.defeated ? selectedMonster.monster.name : selectedMonster.linked ? "連携済みモンスター" : "未発見モンスター")} onClose={() => setSelectedMonster(null)}>
+          <MonsterDetail monster={selectedMonster.monster} number={selectedMonster.number} seen={selectedMonster.seen} defeated={selectedMonster.defeated} linked={selectedMonster.linked} visible={selectedMonster.visible} />
         </FullScreenOverlay>
       )}
     </div>
   );
 }
 
-function MonsterDetail({ monster, number, seen, defeated }) {
+function MonsterDetail({ monster, number, seen, defeated, linked, visible }) {
   const rarityColor = RARITY_COLORS[monster.rarity] || "#94a3b8";
   const [zoomOpen, setZoomOpen] = useState(false);
+  const displayName = seen || defeated ? monster.name : "？？？";
+  const stateLabel = defeated ? "討伐済み / 情報全開放" : seen ? "発見済み / 未討伐" : linked ? "連携済み / 姿と生息地のみ" : "未発見";
 
   useEffect(() => {
     if (!zoomOpen) return;
@@ -3874,10 +3978,10 @@ function MonsterDetail({ monster, number, seen, defeated }) {
   return (
     <div className="monster-detail" style={{ "--rarity-color": rarityColor, "--rarity-glow": RARITY_GLOW[monster.rarity] || RARITY_GLOW.common }}>
       <div className="monster-detail__hero">
-        <div className={"monster-detail__imageBox " + (seen ? "" : "monster-detail__imageBox--unknown")}>
-          {seen ? (
+        <div className={"monster-detail__imageBox " + (visible ? "" : "monster-detail__imageBox--unknown")}>
+          {visible ? (
             <button type="button" className="monster-detail__imageButton" onClick={() => setZoomOpen(true)}>
-              <img src={monster.image} alt={monster.name} className="monster-detail__image" />
+              <img src={monster.image} alt={displayName} className="monster-detail__image" />
             </button>
           ) : (
             <div className="monster-detail__unknown">？？？</div>
@@ -3885,37 +3989,37 @@ function MonsterDetail({ monster, number, seen, defeated }) {
         </div>
         <div className="monster-detail__info">
           <div className="monster-detail__number">No.{String(number).padStart(3, "0")}</div>
-          <h1 className="monster-detail__name">{seen ? monster.name : "？？？"}</h1>
+          <h1 className="monster-detail__name">{displayName}</h1>
           <div className="monster-detail__badges"><span>{RARITY_LABELS[monster.rarity] || monster.rarity}</span><span>{monster.habitat}</span></div>
-          <div className={"monster-detail__state " + (defeated ? "monster-detail__state--defeated" : "")}>{defeated ? "討伐済み" : seen ? "発見済み / 未討伐" : "未発見"}</div>
-          <div className="monster-detail__stats"><span>HP {seen ? monster.hp : "??"}</span><span>EXP {seen ? monster.exp : "??"}</span></div>
-          {seen && (
+          <div className={"monster-detail__state " + (defeated ? "monster-detail__state--defeated" : "")}>{stateLabel}</div>
+          <div className="monster-detail__stats"><span>HP {defeated ? monster.hp : "??"}</span><span>EXP {defeated ? monster.exp : "??"}</span></div>
+          {visible && (
             <button type="button" className="monster-detail__zoomButton" onClick={() => setZoomOpen(true)}>
               画像を大きく見る
             </button>
           )}
         </div>
       </div>
-      <DetailBox title="種族" color={rarityColor}>{seen ? monster.type : "まだ分かっていません。冒険で出会うと記録されます。"}</DetailBox>
-      <DetailBox title="図鑑説明" color="#bae6fd">{seen ? monster.description : "未発見のため、説明文はまだ表示されません。"}</DetailBox>
+      <DetailBox title="種族" color={rarityColor}>{seen || defeated ? monster.type : "まだ分かっていません。冒険で出会うと記録されます。"}</DetailBox>
+      <DetailBox title="図鑑説明" color="#bae6fd">{defeated ? monster.description : seen ? "冒険で姿と生息地を確認しました。討伐すると詳しい説明と転送呪文が開放されます。" : linked ? "転送呪文で姿と生息地だけが記録されています。冒険で出会うと発見済みになります。" : "未発見のため、説明文はまだ表示されません。"}</DetailBox>
       <DetailBox title="転送呪文" color="#fef3c7">
-        {seen ? <><code style={{ color: "#fbbf24", fontWeight: "bold" }}>{monster.password || monster.transferCode}</code><div style={{ marginTop: 6, color: "#cbd5e1", fontSize: 13 }}>将来、この合言葉で別端末の図鑑登録に使える予定です。</div></> : "未発見のため、まだ表示されません。"}
+        {defeated ? <><code style={{ color: "#fbbf24", fontWeight: "bold" }}>{monster.password || monster.transferCode}</code><div style={{ marginTop: 6, color: "#cbd5e1", fontSize: 13 }}>この合言葉で別端末や友達の図鑑に連携できます。</div></> : "転送呪文は討伐後に開放されます。"}
       </DetailBox>
 
-      {zoomOpen && seen && (
-        <div className="monster-image-zoom" role="dialog" aria-modal="true" aria-label={`${monster.name}の拡大画像`} onClick={() => setZoomOpen(false)}>
+      {zoomOpen && visible && (
+        <div className="monster-image-zoom" role="dialog" aria-modal="true" aria-label={`${displayName}の拡大画像`} onClick={() => setZoomOpen(false)}>
           <div className="monster-image-zoom__content" onClick={(event) => event.stopPropagation()}>
             <div className="monster-image-zoom__header">
               <div>
                 <div className="monster-image-zoom__number">No.{String(number).padStart(3, "0")}</div>
-                <div className="monster-image-zoom__name">{monster.name}</div>
+                <div className="monster-image-zoom__name">{displayName}</div>
               </div>
               <button type="button" className="monster-image-zoom__close" onClick={() => setZoomOpen(false)}>
                 閉じる
               </button>
             </div>
             <div className="monster-image-zoom__stage">
-              <img src={monster.image} alt={monster.name} className="monster-image-zoom__image" />
+              <img src={monster.image} alt={displayName} className="monster-image-zoom__image" />
             </div>
           </div>
         </div>

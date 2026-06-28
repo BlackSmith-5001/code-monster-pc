@@ -1278,6 +1278,17 @@
     linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.98));
 }
 
+.monster-book-card--linked {
+  border-color: rgba(196, 181, 253, 0.54);
+  background:
+    radial-gradient(circle at top, rgba(139, 92, 246, 0.22), transparent 38%),
+    linear-gradient(145deg, rgba(30, 27, 75, 0.9), rgba(2, 6, 23, 0.98));
+}
+
+.monster-book-card--linked .monster-book-card__status {
+  color: #ddd6fe;
+}
+
 .monster-book-card--glow::after {
   content: "";
   position: absolute;
