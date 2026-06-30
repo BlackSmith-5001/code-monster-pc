@@ -1583,6 +1583,24 @@ export default function App() {
     setDebugTutorialPrompted(false);
   }
 
+  function handleLinkMonster(monsterId) {
+    setSave((prev) => {
+      const defeated = new Set(prev.monstersDefeatedIds || []);
+      const seen = new Set(prev.monstersSeen || []);
+      const linked = new Set(prev.linkedMonsterIds || []);
+
+      if (defeated.has(monsterId) || seen.has(monsterId) || linked.has(monsterId)) {
+        return prev;
+      }
+
+      linked.add(monsterId);
+      return {
+        ...prev,
+        linkedMonsterIds: Array.from(linked),
+      };
+    });
+  }
+
   const enemyHpPercent = enemy ? Math.max(0, (enemy.hp / enemy.maxHp) * 100) : 0;
   const playerHpPercent = Math.max(0, playerHp);
 
@@ -1623,12 +1641,13 @@ export default function App() {
               bugBookTotal={bugBookTotal}
               monstersSeen={monstersSeen}
               monsterBookTotal={monsterBookTotal}
-              battleLog={battleLog}
-              largeTextMode={largeTextMode}
-              soundEnabled={soundEnabled}
-              onNavigate={(screen) => {
-                playSound("click", soundEnabled);
-                setMenuScreen(screen);
+                battleLog={battleLog}
+                largeTextMode={largeTextMode}
+                soundEnabled={soundEnabled}
+                linkedMonsterCount={(save.linkedMonsterIds || []).length}
+                onNavigate={(screen) => {
+                  playSound("click", soundEnabled);
+                  setMenuScreen(screen);
               }}
               onToggleLargeText={() => setLargeTextMode((value) => !value)}
               onToggleSound={() => {
@@ -1741,23 +1760,7 @@ export default function App() {
                 monstersSeen={monstersSeen}
                 monstersDefeatedIds={monstersDefeatedIds}
                 linkedMonsterIds={save.linkedMonsterIds}
-                onLinkMonster={(monsterId) => {
-                  setSave((prev) => {
-                    const defeated = new Set(prev.monstersDefeatedIds || []);
-                    const seen = new Set(prev.monstersSeen || []);
-                    const linked = new Set(prev.linkedMonsterIds || []);
-
-                    if (defeated.has(monsterId) || seen.has(monsterId) || linked.has(monsterId)) {
-                      return prev;
-                    }
-
-                    linked.add(monsterId);
-                    return {
-                      ...prev,
-                      linkedMonsterIds: Array.from(linked),
-                    };
-                  });
-                }}
+                onLinkMonster={handleLinkMonster}
                 initialFilters={save.monsterBookFilters}
                 onFiltersChange={(filters) => {
                   setSave((prev) => {
@@ -1779,6 +1782,18 @@ export default function App() {
                     };
                   });
                 }}
+              />
+            </MenuScreenFrame>
+          )}
+
+          {menuScreen === "transfer" && (
+            <MenuScreenFrame title="🔐 転送呪文" onBack={() => setMenuScreen("title")}>
+              <TransferCodePanel
+                monstersSeen={monstersSeen}
+                monstersDefeatedIds={monstersDefeatedIds}
+                linkedMonsterIds={save.linkedMonsterIds}
+                onLinkMonster={handleLinkMonster}
+                onOpenMonsterBook={() => setMenuScreen("monsterbook")}
               />
             </MenuScreenFrame>
           )}
@@ -2590,6 +2605,7 @@ function TitleMainMenu({
   battleLog,
   largeTextMode,
   soundEnabled,
+  linkedMonsterCount,
   onNavigate,
   onToggleLargeText,
   onToggleSound,
@@ -2609,6 +2625,13 @@ function TitleMainMenu({
       title: "モンスター図鑑",
       description: `発見 ${monstersSeen.length} / ${monsterBookTotal}`,
       color: "#38bdf8",
+    },
+    {
+      id: "transfer",
+      icon: "🔐",
+      title: "転送呪文",
+      description: `PC・スマホ・友達と連携 / 連携 ${linkedMonsterCount || 0}`,
+      color: "#a78bfa",
     },
     {
       id: "bugbook",
@@ -3736,6 +3759,147 @@ function DetailBox({ title, color, children }) {
     >
       <div style={{ color, fontWeight: 900, marginBottom: 6 }}>{title}</div>
       <div style={{ color: "#e2e8f0" }}>{children}</div>
+    </div>
+  );
+}
+
+function TransferCodePanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds, onLinkMonster, onOpenMonsterBook }) {
+  const [linkCode, setLinkCode] = useState("");
+  const [linkResult, setLinkResult] = useState(null);
+  const entries = getMonsterBookEntries();
+  const seenSet = new Set(monstersSeen || []);
+  const defeatedSet = new Set(monstersDefeatedIds || []);
+  const linkedSet = new Set(linkedMonsterIds || []);
+  const linkedOnlyMonsters = entries.filter((monster) => (
+    linkedSet.has(monster.id) && !seenSet.has(monster.id) && !defeatedSet.has(monster.id)
+  ));
+  const limitedCount = entries.filter((monster) => Array.isArray(monster.levels) && monster.levels.includes("limited")).length;
+
+  function submitLinkCode(event) {
+    event.preventDefault();
+    const normalizedCode = normalizeTransferCode(linkCode);
+    const matchedMonster = entries.find((monster) =>
+      [monster.transferCode, monster.password].some((code) => normalizeTransferCode(code) === normalizedCode)
+    );
+
+    if (!normalizedCode) {
+      setLinkResult({ type: "ng", text: "転送呪文を入力してください。" });
+      return;
+    }
+
+    if (!matchedMonster) {
+      setLinkResult({ type: "ng", text: "この転送呪文に合うモンスターは見つかりませんでした。" });
+      return;
+    }
+
+    const defeated = defeatedSet.has(matchedMonster.id);
+    const seen = seenSet.has(matchedMonster.id);
+    const linked = linkedSet.has(matchedMonster.id);
+    const limited = Array.isArray(matchedMonster.levels) && matchedMonster.levels.includes("limited");
+
+    if (!defeated && !seen && !linked) {
+      onLinkMonster?.(matchedMonster.id);
+    }
+
+    setLinkResult({
+      type: "ok",
+      monster: matchedMonster,
+      code: normalizedCode,
+      label: limited ? "スマホ限定モンスター" : "通常モンスター",
+      text: defeated
+        ? `${matchedMonster.name} はすでに討伐済みです。`
+        : seen
+          ? `${matchedMonster.name} はすでに発見済みです。討伐すると転送呪文が再表示されます。`
+          : linked
+            ? `${matchedMonster.name} はすでに連携済みです。`
+            : `${matchedMonster.name} を連携しました！図鑑で名前・姿・生息地を確認できます。`,
+    });
+    setLinkCode("");
+  }
+
+  return (
+    <div className="transfer-panel">
+      <section className="transfer-panel__hero">
+        <div className="transfer-panel__icon">🔐</div>
+        <div>
+          <h3>モンスター転送所</h3>
+          <p>PC版・スマホ版・友達同士で転送呪文を教え合うと、図鑑にモンスターを連携できます。</p>
+        </div>
+      </section>
+
+      <div className="transfer-panel__rules">
+        <article>
+          <b>通常転送</b>
+          <span>討伐済みモンスターの転送呪文を入力すると、この端末では「連携済み」として記録されます。</span>
+        </article>
+        <article>
+          <b>限定モンスター</b>
+          <span>スマホ版の限定転送呪文も受け取れます。通常冒険には出ず、図鑑で特別枠として楽しめます。</span>
+        </article>
+      </div>
+
+      <form className="transfer-panel__form" onSubmit={submitLinkCode}>
+        <input
+          type="text"
+          value={linkCode}
+          onChange={(event) => {
+            setLinkCode(event.target.value);
+            setLinkResult(null);
+          }}
+          placeholder="例: AKA_SLIME / GENBA_YOSHI"
+          autoCapitalize="characters"
+          spellCheck="false"
+        />
+        <button type="submit" className="primary-action">転送する</button>
+      </form>
+
+      {linkResult && (
+        <div className={`transfer-result transfer-result--${linkResult.type}`}>
+          {linkResult.monster && (
+            <div className="transfer-result__image">
+              <img src={linkResult.monster.image} alt={linkResult.monster.name} />
+            </div>
+          )}
+          <div>
+            <b>{linkResult.type === "ok" ? "転送成功" : "転送できません"}</b>
+            <p>{linkResult.text}</p>
+            {linkResult.type === "ok" && (
+              <div className="transfer-result__chips">
+                <span>{linkResult.label}</span>
+                <code>{linkResult.code}</code>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <section className="transfer-panel__summary">
+        <div><b>{linkedOnlyMonsters.length}</b><span>連携済み</span></div>
+        <div><b>{limitedCount}</b><span>限定対応</span></div>
+        <div><b>{entries.length}</b><span>図鑑総数</span></div>
+      </section>
+
+      <section className="transfer-panel__linked">
+        <div className="transfer-panel__linkedHeader">
+          <h3>連携済みモンスター</h3>
+          <button type="button" onClick={onOpenMonsterBook}>図鑑で見る</button>
+        </div>
+        {linkedOnlyMonsters.length === 0 ? (
+          <div className="transfer-panel__empty">まだ連携済みモンスターはいません。スマホ版や友達から転送呪文を聞いてみよう。</div>
+        ) : (
+          <div className="transfer-panel__linkedGrid">
+            {linkedOnlyMonsters.map((monster) => (
+              <article key={monster.id}>
+                <img src={monster.image} alt={monster.name} />
+                <div>
+                  <b>{monster.name}</b>
+                  <span>{monster.habitat}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
