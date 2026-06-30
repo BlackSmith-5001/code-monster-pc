@@ -2248,6 +2248,150 @@ export const ENEMY_VARIANTS = [
     "sprite": "🐰",
     "hp": 78,
     "exp": 30
+  },
+  {
+    "id": "mofu_defender",
+    "name": "モフモフ・ディフェンダー",
+    "rarity": "rare",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "ふわふわの盾と小さな王冠を掲げる守護者。見えないバグからMasterをやさしく守ってくれる。",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/mofu_defender.jpg",
+    "transferCode": "MOFU_SHIELD",
+    "password": "MOFU_SHIELD",
+    "icon": "🛡️",
+    "sprite": "🛡️",
+    "hp": 120,
+    "exp": 0
+  },
+  {
+    "id": "astral_knight",
+    "name": "アストラル・ナイト",
+    "rarity": "epic",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "世界の歪みの深淵から生まれた漆黒の魔導騎士。エラーそのものを剣に纏わせる。",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/astral_knight.jpg",
+    "transferCode": "ASTRAL_KNIGHT",
+    "password": "ASTRAL_KNIGHT",
+    "icon": "⚔️",
+    "sprite": "⚔️",
+    "hp": 150,
+    "exp": 0
+  },
+  {
+    "id": "iksa_osamarancer",
+    "name": "イクサ・オサマランサー",
+    "rarity": "uncommon",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "もう1行もコードが書けないクマー！と言いながら、なぜか軽やかに舞う武闘派バッタ。",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/iksa_osamarancer.jpg",
+    "transferCode": "IKUSA_LOSE",
+    "password": "IKUSA_LOSE",
+    "icon": "🦗",
+    "sprite": "🦗",
+    "hp": 110,
+    "exp": 0
+  },
+  {
+    "id": "chikuwa_general",
+    "name": "チクワ・ジェネラル",
+    "rarity": "epic",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "ちくわ大明神。誰かがその名を呟くたびに、コード内のコロンがちくわに変換される。",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/chikuwa_general.jpg",
+    "transferCode": "CHIKUWA_DAIMYOSHIN",
+    "password": "CHIKUWA_DAIMYOSHIN",
+    "icon": "🍢",
+    "sprite": "🍢",
+    "hp": 130,
+    "exp": 0
+  },
+  {
+    "id": "onsite_cat",
+    "name": "オンサイト・キャット",
+    "rarity": "rare",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "ヘルメットをかぶった現場確認の化身。原因不明でも指差し確認だけは忘れない。ヨシ！",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/onsite_cat.jpg",
+    "transferCode": "GENBA_YOSHI",
+    "password": "GENBA_YOSHI",
+    "icon": "🐱",
+    "sprite": "🐱",
+    "hp": 118,
+    "exp": 0
+  },
+  {
+    "id": "headlock_kangarhound",
+    "name": "ヘッドロック・カンガルハウンド",
+    "rarity": "rare",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "逃げるバグをがっちり抱え込む剛腕の守護獣。抱えている相棒はなぜか無表情。",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/headlock_kangarhound.jpg",
+    "transferCode": "HEADLOCK_GUARD",
+    "password": "HEADLOCK_GUARD",
+    "icon": "🦘",
+    "sprite": "🦘",
+    "hp": 135,
+    "exp": 0
+  },
+  {
+    "id": "bakusoku_ehho_owl",
+    "name": "爆速エッホフクロウ",
+    "rarity": "epic",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "エッホエッホとログの海を駆け抜ける高速フクロウ。深夜のエラーも一瞬で見つけ出す。",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/bakusoku_ehho_owl.jpg",
+    "transferCode": "EHHOO_SPEED",
+    "password": "EHHOO_SPEED",
+    "icon": "🦉",
+    "sprite": "🦉",
+    "hp": 142,
+    "exp": 0
+  },
+  {
+    "id": "dakko_party_parrot",
+    "name": "ダッコ・パーティパロット",
+    "rarity": "uncommon",
+    "type": "限定モンスター",
+    "habitat": "その他",
+    "description": "抱っこされながら祝福をまき散らす陽気なパロット。勝利画面に拍手と勢いを連れてくる。",
+    "levels": [
+      "limited"
+    ],
+    "image": "/images/limited/dakko_party_parrot.jpg",
+    "transferCode": "DAKKO_PARTY",
+    "password": "DAKKO_PARTY",
+    "icon": "🦜",
+    "sprite": "🦜",
+    "hp": 108,
+    "exp": 0
   }
 ];
 
