@@ -3842,7 +3842,7 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
       <div className="monster-book__header">
         <div>
           <h3 className="monster-book__title">🐲 モンスター図鑑</h3>
-          <div className="monster-book__lead">出会ったコードモンスターを確認できます。フィルタと検索で100体の中から探せます。</div>
+          <div className="monster-book__lead">出会ったコードモンスターを確認できます。転送呪文でPC・スマホ・友達同士の図鑑連携もできます。</div>
         </div>
         <div className="monster-book__summary">
           <span>発見 {discoveredCount} / {entries.length}</span>
@@ -3854,7 +3854,7 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
 
       <form className="monster-book__filters" onSubmit={submitLinkCode}>
         <label className="monster-book__field monster-book__field--wide">
-          <span>転送呪文</span>
+          <span>転送呪文（PC/スマホ共通）</span>
           <input
             type="text"
             value={linkCode}
@@ -3932,9 +3932,9 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
                 <span className="monster-book-card__status">{statusLabel}</span>
               </div>
               <div className="monster-book-card__imageBox">
-                {visible ? <img src={monster.image} alt={seen || defeated ? monster.name : "連携済みモンスター"} className="monster-book-card__image" /> : <div className="monster-book-card__unknown">？？？</div>}
+                {visible ? <img src={monster.image} alt={monster.name} className="monster-book-card__image" /> : <div className="monster-book-card__unknown">？？？</div>}
               </div>
-              <div className="monster-book-card__name">{seen || defeated ? monster.name : "？？？"}</div>
+              <div className="monster-book-card__name">{visible ? monster.name : "？？？"}</div>
               <div className="monster-book-card__meta">
                 <span>{RARITY_LABELS[monster.rarity] || monster.rarity}</span>
                 <span>{visible ? monster.habitat : "生息地不明"}</span>
@@ -3948,7 +3948,7 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
       {filteredEntries.length === 0 && <div className="monster-book__empty">条件に合うモンスターはいません。フィルタや検索語を変えてみてください。</div>}
 
       {selectedMonster && (
-        <FullScreenOverlay title={"🐲 " + (selectedMonster.seen || selectedMonster.defeated ? selectedMonster.monster.name : selectedMonster.linked ? "連携済みモンスター" : "未発見モンスター")} onClose={() => setSelectedMonster(null)}>
+        <FullScreenOverlay title={"🐲 " + (selectedMonster.visible ? selectedMonster.monster.name : "未発見モンスター")} onClose={() => setSelectedMonster(null)}>
           <MonsterDetail monster={selectedMonster.monster} number={selectedMonster.number} seen={selectedMonster.seen} defeated={selectedMonster.defeated} linked={selectedMonster.linked} visible={selectedMonster.visible} />
         </FullScreenOverlay>
       )}
@@ -3959,7 +3959,7 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
 function MonsterDetail({ monster, number, seen, defeated, linked, visible }) {
   const rarityColor = RARITY_COLORS[monster.rarity] || "#94a3b8";
   const [zoomOpen, setZoomOpen] = useState(false);
-  const displayName = seen || defeated ? monster.name : "？？？";
+  const displayName = visible ? monster.name : "？？？";
   const stateLabel = defeated ? "討伐済み / 情報全開放" : seen ? "発見済み / 未討伐" : linked ? "連携済み / 姿と生息地のみ" : "未発見";
 
   useEffect(() => {
