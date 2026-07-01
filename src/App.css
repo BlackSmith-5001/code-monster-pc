@@ -540,7 +540,7 @@
   gap: 12px;
   align-items: center;
   min-height: 96px;
-  padding: 16px;
+  padding: 16px 16px 14px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--menu-color) 62%, #334155);
   background:
@@ -576,6 +576,14 @@
 .main-menu__button small {
   color: #cbd5e1;
   line-height: 1.45;
+}
+
+.main-menu__sub {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.5;
 }
 
 .main-menu__log {
@@ -2104,4 +2112,50 @@
   will-change: transform;
   padding: 4px 14px;
   border-radius: 6px;
+}
+
+/* タイトル下部 モンスターパレード */
+.monster-parade {
+  position: relative;
+  height: 90px;
+  overflow: hidden;
+  margin-top: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+  box-shadow: inset 0 -18px 34px rgba(2, 6, 23, 0.34);
+}
+
+.monster-parade__ground {
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  bottom: -12px;
+  height: 32px;
+  background:
+    radial-gradient(circle at 10% 30%, rgba(187, 247, 208, 0.3), transparent 18%),
+    radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.24), transparent 18%),
+    radial-gradient(circle at 75% 25%, rgba(34, 197, 94, 0.24), transparent 20%),
+    rgba(2, 6, 23, 0.32);
+  filter: blur(0.2px);
+}
+
+.monster-parade__monster {
+  position: absolute;
+  left: 100%;
+  line-height: 1;
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.42));
+  animation-name: monster-parade;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  will-change: transform;
+}
+
+@keyframes monster-parade {
+  0% {
+    transform: translateX(110%);
+  }
+
+  100% {
+    transform: translateX(calc(-100vw - 120%));
+  }
 }

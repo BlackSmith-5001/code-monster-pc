@@ -1691,6 +1691,8 @@ export default function App() {
                 bugTotal={bugBookTotal}
                 totalCasts={save.totalCasts}
                 totalPlays={(save.stagePlays || []).reduce((a, b) => a + b, 0)}
+                monstersSeen={save.monstersSeen || []}
+                clearedLevels={save.clearedLevels || []}
               />
             </div>
 
@@ -2770,35 +2772,40 @@ function TitleMainMenu({
       id: "adventure",
       icon: "⚔️",
       title: "冒険モード選択",
-      description: "ノーマル冒険はこちら。デバッグダンジョンはLv.5で解放。",
+      description: "ノーマル / デバッグダンジョン",
+      sub: "呪文を唱えてモンスターを倒そう。Lv.5でデバッグダンジョン解放。",
       color: "#fbbf24",
     },
     {
       id: "monsterbook",
       icon: "🐲",
       title: "モンスター図鑑",
-      description: `発見 ${monstersSeen.length} / ${monsterBookTotal}`,
+      description: `発見 ${monstersSeen.length} / ${monsterBookTotal}体`,
+      sub: "詳細なモンスターデータはこちらから。全130体を集めよう。",
       color: "#38bdf8",
     },
     {
       id: "transfer",
       icon: "🔐",
       title: "転送呪文",
-      description: `PC・スマホ・友達と連携 / 連携 ${linkedMonsterCount || 0}`,
+      description: `連携済み ${linkedMonsterCount || 0}体`,
+      sub: "PC・スマホ・友達とモンスターを共有できる。",
       color: "#a78bfa",
     },
     {
       id: "bugbook",
       icon: "📘",
       title: "バグ図鑑",
-      description: `浄化 ${fixedBugTypes.length} / ${bugBookTotal}`,
+      description: `浄化 ${fixedBugTypes.length} / ${bugBookTotal}種`,
+      sub: "遭遇したPythonバグの解説をここで確認しよう。",
       color: "#fb7185",
     },
     {
       id: "beginner",
       icon: "🏠",
       title: "初心者の館",
-      description: "Pythonの入口を師匠とゆっくり確認する。",
+      description: "Pythonの最初の一歩",
+      sub: "師匠とゆっくり基礎から確認する。まずはここから。",
       color: "#34d399",
     },
   ];
@@ -2833,6 +2840,7 @@ function TitleMainMenu({
             <span>
               <b>{item.title}</b>
               <small>{item.description}</small>
+              {item.sub && <span className="main-menu__sub">{item.sub}</span>}
             </span>
           </button>
         ))}
@@ -3172,10 +3180,51 @@ function DebugTutorialScreen({ onBack, onComplete }) {
   );
 }
 
-function TitleHero({ soundEnabled, onPlayMenuBgm, monsterSeenCount, monsterTotal, bugFixedCount, bugTotal, totalCasts, totalPlays }) {
+function TitleHero({
+  soundEnabled,
+  onPlayMenuBgm,
+  monsterSeenCount,
+  monsterTotal,
+  bugFixedCount,
+  bugTotal,
+  totalCasts,
+  totalPlays,
+  monstersSeen = [],
+  clearedLevels = [],
+}) {
   const [logoError, setLogoError] = useState(false);
   const logoSrc = "/images/title-logo.png";
   const showImageLogo = !logoError;
+  const paradeMonsters = useMemo(() => {
+    const seenSet = new Set(monstersSeen);
+    const candidates = ENEMY_VARIANTS.filter((monster) => seenSet.has(monster.id));
+
+    return candidates
+      .map((monster, index) => ({
+        monster,
+        sortKey: monster.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), index * 31),
+      }))
+      .sort((a, b) => a.sortKey - b.sortKey)
+      .slice(0, 6)
+      .map(({ monster }, index) => {
+        const seed = monster.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), index * 17);
+
+        return {
+          id: monster.id,
+          icon: monster.icon || monster.sprite || "❓",
+          name: monster.name,
+          top: 10 + (seed % 61),
+          size: 24 + (seed % 9),
+          duration: 12 + (seed % 9),
+          delay: -(seed % 16),
+        };
+      });
+  }, [monstersSeen]);
+  const lastClearedLevel = clearedLevels.length > 0 ? Math.max(...clearedLevels) : null;
+  const lastStageColor = Number.isInteger(lastClearedLevel) ? LEVELS[lastClearedLevel]?.color : null;
+  const paradeBackground = lastStageColor
+    ? `linear-gradient(180deg, ${lastStageColor}33 0%, ${lastStageColor}22 100%)`
+    : "linear-gradient(180deg, #14532d 0%, #166534 60%, #15803d 100%)";
 
   return (
     <div
@@ -3311,6 +3360,27 @@ function TitleHero({ soundEnabled, onPlayMenuBgm, monsterSeenCount, monsterTotal
             </div>
           ))}
         </div>
+
+        {paradeMonsters.length > 0 && (
+          <div className="monster-parade" style={{ background: paradeBackground }}>
+            <div className="monster-parade__ground" />
+            {paradeMonsters.map((monster) => (
+              <span
+                key={monster.id}
+                className="monster-parade__monster"
+                title={monster.name}
+                style={{
+                  top: `${monster.top}%`,
+                  fontSize: `${monster.size}px`,
+                  animationDuration: `${monster.duration}s`,
+                  animationDelay: `${monster.delay}s`,
+                }}
+              >
+                {monster.icon}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
