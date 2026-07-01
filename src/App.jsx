@@ -307,6 +307,16 @@ function getLevelInfoFromExp(exp) {
   };
 }
 
+function getTotalExpForLevel(targetLevel) {
+  let total = 0;
+
+  for (let level = 1; level < targetLevel; level += 1) {
+    total += 100 + (level - 1) * 50;
+  }
+
+  return total;
+}
+
 function getPlayerTitle(playerLevel) {
   if (playerLevel >= 15) return "伝説のデバッガー";
   if (playerLevel >= 11) return "条件分岐の賢者";
@@ -946,6 +956,7 @@ export default function App() {
 
   const playerLevelInfo = getLevelInfoFromExp(save.exp);
   const debugDungeonUnlocked = playerLevelInfo.playerLevel >= DEBUG_UNLOCK_LEVEL;
+  const debugUnlockRemainingExp = Math.max(0, getTotalExpForLevel(DEBUG_UNLOCK_LEVEL) - save.exp);
   const unlockedTitles = getUnlockedTitles(save, playerLevelInfo.playerLevel);
   const activeTitle = getActiveTitle(save, playerLevelInfo.playerLevel);
   const playerTitle = activeTitle.name;
@@ -1685,6 +1696,7 @@ export default function App() {
               selectedMode={selectedMode}
               debugDungeonUnlocked={debugDungeonUnlocked}
               debugUnlockLevel={DEBUG_UNLOCK_LEVEL}
+              debugUnlockRemainingExp={debugUnlockRemainingExp}
               debugTutorialCompleted={save.debugTutorialCompleted}
               titles={unlockedTitles}
               activeTitleId={activeTitle.id}
@@ -2200,6 +2212,8 @@ export default function App() {
           playerLevel={getLevelInfoFromExp(save.exp).playerLevel}
           title={getPlayerTitle(getLevelInfoFromExp(save.exp).playerLevel)}
           onTown={goTown}
+          isLastStage={selectedLevel >= LEVELS.length - 1}
+          onNextStage={() => handleStart(selectedLevel + 1)}
         />
       )}
 
@@ -2328,13 +2342,36 @@ export default function App() {
             </button>
           )}
 
+          {(resultType === "defeat" || resultType === "timeup") && (
+            <button
+              onClick={() => handleStart(selectedLevel)}
+              style={{
+                padding: "12px 30px",
+                background: "linear-gradient(135deg, #b45309, #d97706)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                cursor: "pointer",
+                fontWeight: "bold",
+                width: "100%",
+                marginBottom: 10,
+              }}
+            >
+              🔄 もう一度挑戦する
+            </button>
+          )}
+
           <button
             onClick={goTown}
             style={{
               padding: "12px 30px",
-              background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+              background: (resultType === "defeat" || resultType === "timeup")
+                ? "rgba(30,41,59,0.8)"
+                : "linear-gradient(135deg, #4f46e5, #7c3aed)",
               color: "#fff",
-              border: "none",
+              border: (resultType === "defeat" || resultType === "timeup")
+                ? "1px solid #475569"
+                : "none",
               borderRadius: 10,
               cursor: "pointer",
               fontWeight: "bold",
@@ -2399,7 +2436,7 @@ function SpellMeaningPanel({ current }) {
   );
 }
 
-function LevelClearScreen({ stage, battleLog, requiredQuestions, combo, playerLevel, title, onTown }) {
+function LevelClearScreen({ stage, battleLog, requiredQuestions, combo, playerLevel, title, onTown, isLastStage, onNextStage }) {
   return (
     <div
       style={{
@@ -2463,23 +2500,47 @@ function LevelClearScreen({ stage, battleLog, requiredQuestions, combo, playerLe
         街へ戻って、次のステージや図鑑を確認しよう。
       </div>
 
-      <button
-        type="button"
-        onClick={onTown}
-        style={{
-          padding: "14px 34px",
-          background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
-          color: "#fff",
-          border: "none",
-          borderRadius: 12,
-          cursor: "pointer",
-          fontWeight: "bold",
-          width: "100%",
-          maxWidth: 360,
-        }}
-      >
-        🏰 街へ戻る
-      </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+        {!isLastStage && (
+          <button
+            type="button"
+            onClick={onNextStage}
+            style={{
+              padding: "14px 34px",
+              background: "linear-gradient(135deg, #059669, #10b981)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 12,
+              cursor: "pointer",
+              fontWeight: "bold",
+              width: "100%",
+              maxWidth: 360,
+              fontSize: 16,
+            }}
+          >
+            ➡️ 次のステージへ
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onTown}
+          style={{
+            padding: "14px 34px",
+            background: isLastStage
+              ? "linear-gradient(135deg, #4f46e5, #7c3aed)"
+              : "rgba(30,41,59,0.8)",
+            color: "#fff",
+            border: isLastStage ? "none" : "1px solid #475569",
+            borderRadius: 12,
+            cursor: "pointer",
+            fontWeight: "bold",
+            width: "100%",
+            maxWidth: 360,
+          }}
+        >
+          🏰 街へ戻る
+        </button>
+      </div>
     </div>
   );
 }
@@ -2751,6 +2812,7 @@ function AdventureMenuScreen({
   selectedMode,
   debugDungeonUnlocked,
   debugUnlockLevel,
+  debugUnlockRemainingExp,
   debugTutorialCompleted,
   titles,
   activeTitleId,
@@ -2764,6 +2826,7 @@ function AdventureMenuScreen({
         selectedMode={selectedMode}
         debugDungeonUnlocked={debugDungeonUnlocked}
         debugUnlockLevel={debugUnlockLevel}
+        debugUnlockRemainingExp={debugUnlockRemainingExp}
         debugTutorialCompleted={debugTutorialCompleted}
         onSelectMode={onSelectMode}
       />
@@ -2812,7 +2875,10 @@ function StageSelectPanel({ selectedMode, save, recommendedStage, battleLog, onS
               {recommended && <span className="stage-select-card__recommend">おすすめ</span>}
               <div className="stage-select-card__title">
                 <span>{lv.emoji}</span>
-                <b>{stageLevel} {lv.stageName}</b>
+                <b>
+                  {stageLevel} {lv.stageName}
+                  {cleared && <span aria-label="クリア済み"> ✅</span>}
+                </b>
               </div>
               <div className="stage-select-card__name">テーマ: {stageTheme || "基礎"}</div>
               <p>{STAGE_LEARNING_THEMES[i] || "学習テーマ準備中"}</p>
@@ -3321,6 +3387,7 @@ function ModeSelectPanel({
   selectedMode,
   debugDungeonUnlocked,
   debugUnlockLevel,
+  debugUnlockRemainingExp,
   debugTutorialCompleted,
   onSelectMode,
 }) {
@@ -3433,6 +3500,12 @@ function ModeSelectPanel({
                 {mode.description}
               </div>
 
+              {mode.id === "debug" && mode.locked && (
+                <div style={{ marginTop: 8, color: "#fdba74", fontSize: 12, fontWeight: 900 }}>
+                  あと {debugUnlockRemainingExp} EXP で解放
+                </div>
+              )}
+
               {active && (
                 <div style={{ marginTop: 8, color: mode.color, fontSize: 12, fontWeight: 900 }}>
                   ✅ 選択中
@@ -3458,6 +3531,8 @@ function ModeSelectPanel({
           }}
         >
           🔒 デバッグダンジョンはLv.{debugUnlockLevel}で解放されます。解放後は、まず短いチュートリアルで「間違いを直す」感覚を確認します。
+          <br />
+          あと {debugUnlockRemainingExp} EXP で解放。
         </div>
       )}
     </div>
