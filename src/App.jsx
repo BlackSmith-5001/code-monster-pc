@@ -1622,14 +1622,19 @@ export default function App() {
       {journey && <JourneyTransition journey={journey} />}
 
       {!journey && !started && !finished && (
-        <div style={{ textAlign: "center", width: "100%", maxWidth: 860, marginTop: 20 }}>
-          <TitleHero
-            soundEnabled={soundEnabled}
-            onPlayMenuBgm={() => {
-              playSound("click", soundEnabled);
-              startMenuBgm();
-            }}
-          />
+        <div style={{ width: "100%", maxWidth: 1200, marginTop: 20 }}>
+          <div className="lobby-layout">
+            <div className="lobby-layout__left">
+              <TitleHero
+                soundEnabled={soundEnabled}
+                onPlayMenuBgm={() => {
+                  playSound("click", soundEnabled);
+                  startMenuBgm();
+                }}
+              />
+            </div>
+
+            <div className="lobby-layout__right">
 
           {menuScreen === "title" && (
             <TitleMainMenu
@@ -1804,6 +1809,8 @@ export default function App() {
               onGoAdventure={() => setMenuScreen("adventure")}
             />
           )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -3047,7 +3054,6 @@ function TitleHero({ soundEnabled, onPlayMenuBgm }) {
         border: "1px solid rgba(125,211,252,0.55)",
         borderRadius: 24,
         padding: "26px 18px 24px",
-        marginBottom: 22,
         boxShadow:
           "0 0 36px rgba(56,189,248,0.22), 0 24px 80px rgba(0,0,0,0.45)",
       }}

@@ -2023,3 +2023,31 @@
     padding: 12px;
   }
 }
+
+/* 2カラムロビーレイアウト */
+.lobby-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+  text-align: left;
+}
+
+.lobby-layout__left {
+  position: sticky;
+  top: 20px;
+}
+
+.lobby-layout__right {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .lobby-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-layout__left {
+    position: static;
+  }
+}
