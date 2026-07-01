@@ -2037,7 +2037,7 @@
   display: grid;
   grid-template-columns: 380px 1fr;
   gap: 20px;
-  align-items: stretch;
+  align-items: start;
   text-align: left;
 }
 
@@ -2123,14 +2123,17 @@
 /* タイトル下部 モンスターパレード */
 .monster-parade {
   position: relative;
-  height: 90px;
+  height: 248px;
+  min-height: 248px;
+  flex: 0 0 248px;
   overflow: hidden;
-  margin-top: auto;
+  margin-top: 12px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 16px;
-  background-position: center;
+  background-position: center bottom;
   background-size: cover;
   box-shadow: inset 0 -18px 34px rgba(2, 6, 23, 0.34);
+  isolation: isolate;
   --parade-end: -560px;
 }
 
@@ -2139,12 +2142,12 @@
   left: -4%;
   right: -4%;
   bottom: -12px;
-  height: 32px;
+  height: 24px;
   background:
     radial-gradient(circle at 10% 30%, rgba(187, 247, 208, 0.3), transparent 18%),
     radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.24), transparent 18%),
     radial-gradient(circle at 75% 25%, rgba(34, 197, 94, 0.24), transparent 20%),
-    rgba(2, 6, 23, 0.32);
+    rgba(2, 6, 23, 0.08);
   filter: blur(0.2px);
 }
 
@@ -2157,6 +2160,7 @@
   animation-iteration-count: infinite;
   animation-timing-function: linear;
   will-change: transform;
+  --parade-y: -50%;
 }
 
 .monster-parade__monster--image {
@@ -2168,92 +2172,142 @@
 
 @keyframes monster-parade {
   0% {
-    transform: translateX(110%);
+    transform: translateX(110%) translateY(var(--parade-y));
   }
 
   100% {
-    transform: translateX(var(--parade-end));
+    transform: translateX(var(--parade-end)) translateY(var(--parade-y));
   }
 }
 
 @keyframes monster-parade-bounce {
   0% {
-    transform: translateX(110%) translateY(0);
+    transform: translateX(110%) translateY(var(--parade-y));
   }
 
   25% {
-    transform: translateX(-140px) translateY(-10px);
+    transform: translateX(-140px) translateY(calc(var(--parade-y) - 10px));
   }
 
   50% {
-    transform: translateX(-280px) translateY(0);
+    transform: translateX(-280px) translateY(var(--parade-y));
   }
 
   75% {
-    transform: translateX(-420px) translateY(-8px);
+    transform: translateX(-420px) translateY(calc(var(--parade-y) - 8px));
   }
 
   100% {
-    transform: translateX(var(--parade-end)) translateY(0);
+    transform: translateX(var(--parade-end)) translateY(var(--parade-y));
   }
 }
 
 @keyframes monster-parade-snake {
   0% {
-    transform: translateX(110%) translateY(0);
+    transform: translateX(110%) translateY(var(--parade-y));
   }
 
   20% {
-    transform: translateX(-110px) translateY(-8px);
+    transform: translateX(-110px) translateY(calc(var(--parade-y) - 8px));
   }
 
   40% {
-    transform: translateX(-220px) translateY(7px);
+    transform: translateX(-220px) translateY(calc(var(--parade-y) + 7px));
   }
 
   60% {
-    transform: translateX(-330px) translateY(-7px);
+    transform: translateX(-330px) translateY(calc(var(--parade-y) - 7px));
   }
 
   80% {
-    transform: translateX(-450px) translateY(5px);
+    transform: translateX(-450px) translateY(calc(var(--parade-y) + 5px));
   }
 
   100% {
-    transform: translateX(var(--parade-end)) translateY(0);
+    transform: translateX(var(--parade-end)) translateY(var(--parade-y));
   }
 }
 
 @keyframes monster-parade-bounce-snake {
   0% {
-    transform: translateX(110%) translateY(0);
+    transform: translateX(110%) translateY(var(--parade-y));
   }
 
   10% {
-    transform: translateX(-70px) translateY(-14px);
+    transform: translateX(-70px) translateY(calc(var(--parade-y) - 14px));
   }
 
   20% {
-    transform: translateX(-140px) translateY(4px);
+    transform: translateX(-140px) translateY(calc(var(--parade-y) + 4px));
   }
 
   35% {
-    transform: translateX(-230px) translateY(-18px);
+    transform: translateX(-230px) translateY(calc(var(--parade-y) - 18px));
   }
 
   50% {
-    transform: translateX(-320px) translateY(6px);
+    transform: translateX(-320px) translateY(calc(var(--parade-y) + 6px));
   }
 
   65% {
-    transform: translateX(-400px) translateY(-12px);
+    transform: translateX(-400px) translateY(calc(var(--parade-y) - 12px));
   }
 
   80% {
-    transform: translateX(-480px) translateY(2px);
+    transform: translateX(-480px) translateY(calc(var(--parade-y) + 2px));
   }
 
   100% {
-    transform: translateX(var(--parade-end)) translateY(0);
+    transform: translateX(var(--parade-end)) translateY(var(--parade-y));
+  }
+}
+
+/* LvUPマーキー */
+.levelup-marquee {
+  display: flex;
+  gap: 32px;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.18), rgba(251, 191, 36, 0.08));
+  border-radius: 8px;
+  animation: marquee-scroll 6s linear infinite;
+}
+
+.levelup-marquee span {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+/* 称号解放マーキー */
+.title-unlock-marquee {
+  display: flex;
+  gap: 32px;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.18), rgba(168, 85, 247, 0.08));
+  border-radius: 8px;
+  animation: marquee-scroll 7s linear infinite;
+}
+
+.title-unlock-marquee span {
+  font-size: 14px;
+  font-weight: bold;
+  color: #c084fc;
+  flex-shrink: 0;
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
   }
 }

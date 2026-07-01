@@ -155,6 +155,65 @@ const TITLE_LIST = [
       return ENEMY_VARIANTS.some((monster) => seen.has(monster.id) && ["rare", "epic"].includes(monster.rarity));
     },
   },
+  {
+    id: "combo_master",
+    name: "コンボマスター",
+    description: "最大コンボ10以上を記録した証。",
+    isUnlocked: ({ save }) => (save.maxCombo || 0) >= 10,
+  },
+  {
+    id: "monster_collector",
+    name: "モンスター蒐集家",
+    description: "30体以上のモンスターを発見した証。",
+    isUnlocked: ({ save }) => (save.monstersSeen || []).length >= 30,
+  },
+  {
+    id: "century_caster",
+    name: "百呪詠唱師",
+    description: "100回以上コードを唱えた大魔術師。",
+    isUnlocked: ({ save }) => (save.totalCasts || 0) >= 100,
+  },
+  {
+    id: "stage_conqueror",
+    name: "全ステージ制覇者",
+    description: "全4ステージをクリアした証。",
+    isUnlocked: ({ save }) => (save.clearedLevels || []).length >= 4,
+  },
+  {
+    id: "explorer",
+    name: "冒険者",
+    description: "10回以上プレイした証。",
+    isUnlocked: ({ save }) => (save.stagePlays || []).reduce((a, b) => a + b, 0) >= 10,
+  },
+  {
+    id: "monster_slayer",
+    name: "モンスタースレイヤー",
+    description: "50体以上のモンスターを討伐した証。",
+    isUnlocked: ({ save }) => (save.monstersDefeatedIds || []).length >= 50 || (save.monstersDefeated || 0) >= 50,
+  },
+  {
+    id: "encyclopedia",
+    name: "図鑑の探求者",
+    description: "モンスターを50体以上発見した証。",
+    isUnlocked: ({ save }) => (save.monstersSeen || []).length >= 50,
+  },
+];
+
+const TITLE_UNLOCK_MARQUEE = [
+  "新称号獲得！！",
+  "新パッシブ開放！",
+  "称号コレクション更新中",
+  "タイトル画面へ急げ！",
+  "魔術師の格が上がった！",
+];
+
+const LEVEL_UP_MARQUEE = [
+  "LvUP！",
+  "強くなった！",
+  "ステータス上昇！",
+  "ナイスデバッグ！",
+  "( ≧∀≦)ノ",
+  "おめでとう！",
 ];
 
 const INITIAL_SAVE = {
@@ -181,6 +240,7 @@ const INITIAL_SAVE = {
     search: "",
   },
   selectedTitleId: "apprentice_mage",
+  unlockedTitleIds: ["apprentice_mage"],
 };
 
 function sanitizeNumber(value, fallback) {
@@ -278,6 +338,8 @@ function sanitizeSave(parsed) {
       : INITIAL_SAVE.debugTutorialCompleted,
     monsterBookFilters: sanitizeMonsterBookFilters(source.monsterBookFilters),
     selectedTitleId: sanitizeTitleId(source.selectedTitleId),
+    unlockedTitleIds: sanitizeStringArray(source.unlockedTitleIds, INITIAL_SAVE.unlockedTitleIds)
+      .filter((titleId) => TITLE_LIST.some((title) => title.id === titleId)),
   };
 }
 
@@ -332,6 +394,16 @@ function getUnlockedTitles(save, playerLevel) {
     ...title,
     unlocked: title.isUnlocked({ save, playerLevel }),
   }));
+}
+
+function getNewlyUnlockedTitles(prevSave, nextSave, nextPlayerLevel) {
+  const prevIds = new Set(prevSave.unlockedTitleIds || ["apprentice_mage"]);
+
+  return TITLE_LIST.filter(
+    (title) =>
+      !prevIds.has(title.id) &&
+      title.isUnlocked({ save: nextSave, playerLevel: nextPlayerLevel })
+  );
 }
 
 function getActiveTitle(save, playerLevel) {
@@ -937,6 +1009,7 @@ export default function App() {
   const [flash, setFlash] = useState(null);
   const [monsterComment, setMonsterComment] = useState(null);
   const [screenFade, setScreenFade] = useState(null);
+  const [recentTitleUnlocks, setRecentTitleUnlocks] = useState([]);
   const [showDetails, setShowDetails] = useState(false);
   const [largeTextMode, setLargeTextMode] = useState(false);
   const [menuScreen, setMenuScreen] = useState("title");
@@ -1181,11 +1254,13 @@ export default function App() {
         seen.add(newEnemy.id);
       }
 
-      return {
+      const nextSave = {
         ...prev,
         stagePlays: nextStagePlays,
         monstersSeen: Array.from(seen),
       };
+
+      return applyTitleUnlocks(prev, nextSave, { show: false });
     });
 
     setSelectedLevel(level);
@@ -1202,6 +1277,7 @@ export default function App() {
     setStarted(true);
     setFinished(false);
     setResultType(null);
+    setRecentTitleUnlocks([]);
     setShowDetails(false);
     setBattleLog(
       activeMode === "debug"
@@ -1228,6 +1304,7 @@ export default function App() {
     setStarted(false);
     setFinished(false);
     setResultType(null);
+    setRecentTitleUnlocks([]);
     setReviewMode(false);
     setBattleLog("街へ帰還した。勇気ある撤退もまた立派なデバッグ。");
   }
@@ -1238,10 +1315,12 @@ export default function App() {
       const cleared = new Set(prev.clearedLevels || []);
       cleared.add(selectedLevel);
 
-      return {
+      const nextSave = {
         ...prev,
         clearedLevels: Array.from(cleared),
       };
+
+      return applyTitleUnlocks(prev, nextSave);
     });
   }
 
@@ -1283,6 +1362,31 @@ export default function App() {
     if (!data?.[eventType]) return;
     const top = Math.floor(Math.random() * 46) + 20;
     setMonsterComment({ text: data[eventType], icon: enemyObj.icon || enemyObj.sprite || "🐉", key: Date.now(), top, eventType });
+  }
+
+  function applyTitleUnlocks(prevSave, nextSave, options = {}) {
+    const nextPlayerLevel = getLevelInfoFromExp(nextSave.exp).playerLevel;
+    const newlyUnlocked = getNewlyUnlockedTitles(prevSave, nextSave, nextPlayerLevel);
+
+    if (newlyUnlocked.length === 0) {
+      return nextSave;
+    }
+
+    if (options.show !== false) {
+      setRecentTitleUnlocks((current) => {
+        const byId = new Map(current.map((title) => [title.id, title]));
+        newlyUnlocked.forEach((title) => byId.set(title.id, title));
+        return Array.from(byId.values());
+      });
+    }
+
+    return {
+      ...nextSave,
+      unlockedTitleIds: Array.from(new Set([
+        ...(nextSave.unlockedTitleIds || ["apprentice_mage"]),
+        ...newlyUnlocked.map((title) => title.id),
+      ])),
+    };
   }
 
   function handleTimeUp() {
@@ -1345,7 +1449,7 @@ export default function App() {
         fixed.add(debug.bugType);
       }
 
-      return {
+      const nextSave = {
         ...prev,
         exp: prev.exp + gainedCastExp,
         totalCasts: prev.totalCasts + 1,
@@ -1355,6 +1459,8 @@ export default function App() {
           ? (prev.debugCleanses || 0) + 1
           : (prev.debugCleanses || 0),
       };
+
+      return applyTitleUnlocks(prev, nextSave);
     });
 
     if (nextEnemyHp <= 0) {
@@ -1374,13 +1480,17 @@ export default function App() {
       const nextCompletedCount = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
       const didStageClear = nextCompletedCount >= REQUIRED_QUESTIONS_PER_STAGE;
 
-      setSave((prev) => ({
-        ...prev,
-        exp: prev.exp + gainedExp,
-        monstersDefeated: prev.monstersDefeated + 1,
-        monstersDefeatedIds: Array.from(new Set([...(prev.monstersDefeatedIds || []), enemy.id].filter(Boolean))),
-        maxCombo: Math.max(prev.maxCombo, nextCombo),
-      }));
+      setSave((prev) => {
+        const nextSave = {
+          ...prev,
+          exp: prev.exp + gainedExp,
+          monstersDefeated: prev.monstersDefeated + 1,
+          monstersDefeatedIds: Array.from(new Set([...(prev.monstersDefeatedIds || []), enemy.id].filter(Boolean))),
+          maxCombo: Math.max(prev.maxCombo, nextCombo),
+        };
+
+        return applyTitleUnlocks(prev, nextSave);
+      });
 
       setQuestionCount(nextCompletedCount);
       setReviewMode(false);
@@ -1501,10 +1611,12 @@ export default function App() {
         seen.add(newEnemy.id);
       }
 
-      return {
+      const nextSave = {
         ...prev,
         monstersSeen: Array.from(seen),
       };
+
+      return applyTitleUnlocks(prev, nextSave, { show: false });
     });
 
     setEnemy(newEnemy);
@@ -1512,6 +1624,7 @@ export default function App() {
     setCurrent(nextQuestion);
     setFinished(false);
     setResultType(null);
+    setRecentTitleUnlocks([]);
     setShowDetails(false);
     setTyped("");
     setElapsed(0);
@@ -1562,6 +1675,7 @@ export default function App() {
 
     setFinished(false);
     setResultType(null);
+    setRecentTitleUnlocks([]);
     setJourney({
       mode: selectedMode,
       stageLabel: LEVELS[selectedLevel].label,
@@ -1596,6 +1710,7 @@ export default function App() {
     setStarted(false);
     setFinished(false);
     setResultType(null);
+    setRecentTitleUnlocks([]);
     setReviewMode(false);
     setEnemy(null);
     setBattleLog("街へ帰還した。次の冒険に備えよう。");
@@ -2300,6 +2415,11 @@ export default function App() {
 
           {resultType === "levelup" && (
             <>
+              <div className="levelup-marquee" aria-hidden="true">
+                {[...LEVEL_UP_MARQUEE, ...LEVEL_UP_MARQUEE].map((text, i) => (
+                  <span key={i}>{text}</span>
+                ))}
+              </div>
               <h2 style={{ color: "#fbbf24", margin: "0 0 10px 0" }}>🌟 LEVEL UP！🌟</h2>
               <p style={{ color: "#e0e7ff", fontWeight: "bold" }}>
                 魔術師レベルが Lv.{getLevelInfoFromExp(save.exp).playerLevel} になった！
@@ -2358,6 +2478,34 @@ export default function App() {
               <ResultLine label="🐲 登録モンスター" value={enemy.baseName} />
             )}
           </div>
+
+          {recentTitleUnlocks.length > 0 && (
+            <>
+              <div className="title-unlock-marquee" aria-hidden="true">
+                {TITLE_UNLOCK_MARQUEE.concat(recentTitleUnlocks.map((title) => title.name)).map((text, i) => (
+                  <span key={i}>{text}</span>
+                ))}
+              </div>
+              <div
+                style={{
+                  marginTop: 16,
+                  background: "rgba(251,191,36,0.08)",
+                  border: "1px solid #fbbf2466",
+                  borderRadius: 12,
+                  padding: "12px 16px",
+                  textAlign: "left",
+                }}
+              >
+                <b style={{ color: "#fbbf24" }}>🏅 新称号解放！</b>
+                {recentTitleUnlocks.map((title) => (
+                  <div key={title.id} style={{ marginTop: 8 }}>
+                    <span style={{ color: "#f8fafc", fontWeight: "bold" }}>【{title.name}】</span>
+                    <small style={{ display: "block", color: "#94a3b8", marginTop: 2 }}>{title.description}</small>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <button
             onClick={() => setShowDetails(!showDetails)}
@@ -3227,7 +3375,7 @@ function TitleHero({
           image: monster.image,
           icon: monster.icon || monster.sprite || "❓",
           name: monster.name,
-          top: type === "image" ? 4 + (seed % 52) : 10 + (seed % 61),
+          top: type === "image" ? 42 + (seed % 22) : 48 + (seed % 18),
           size: type === "image" ? 40 + (seed % 20) : 24 + (seed % 9),
           duration: 10 + (seed % 8),
           delay: -(seed % 16),
@@ -3237,15 +3385,13 @@ function TitleHero({
   }, [monstersSeen]);
   const lastClearedLevel = clearedLevels.length > 0 ? Math.max(...clearedLevels) : null;
   const lastStageColor = Number.isInteger(lastClearedLevel) ? LEVELS[lastClearedLevel]?.color : null;
-  const stageBgImage = Number.isInteger(lastClearedLevel)
-    ? `url('/images/stages/lv${lastClearedLevel + 1}.png')`
-    : null;
   const paradeGradient = lastStageColor
-    ? `linear-gradient(180deg, ${lastStageColor}33 0%, ${lastStageColor}22 100%)`
+    ? `linear-gradient(180deg, ${lastStageColor}55 0%, ${lastStageColor}33 100%)`
     : "linear-gradient(180deg, #14532d 0%, #166534 60%, #15803d 100%)";
-  const paradeBackground = lastStageColor
-    ? `${stageBgImage}, ${paradeGradient}`
-    : paradeGradient;
+  const stageBgUrl = Number.isInteger(lastClearedLevel)
+    ? `url('/images/stages/lv${lastClearedLevel + 1}.png')`
+    : `url('/images/stages/lv0_default.png')`;
+  const paradeBackground = `linear-gradient(to bottom, rgba(2,6,23,0.65) 0%, rgba(2,6,23,0.10) 25%, rgba(2,6,23,0.10) 75%, rgba(2,6,23,0.65) 100%), ${stageBgUrl}, ${paradeGradient}`;
 
   return (
     <div
@@ -3387,7 +3533,7 @@ function TitleHero({
         </div>
 
         {paradeMonsters.length > 0 && (
-          <div className="monster-parade" style={{ background: paradeBackground }}>
+          <div className="monster-parade" style={{ backgroundImage: paradeBackground }}>
             <div className="monster-parade__ground" />
             {paradeMonsters.map((monster) =>
               monster.type === "image" ? (
