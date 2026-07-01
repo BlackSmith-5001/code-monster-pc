@@ -10,6 +10,7 @@ import {
   BUG_LIBRARY,
   getBugInfo,
   getBugBookEntries,
+  MONSTER_COMMENTS_MAP,
 } from "./data";
 import { Gauge, MonsterPortrait, StatusCard } from "./components/BattleWidgets";
 
@@ -934,6 +935,8 @@ export default function App() {
 
   const [soundEnabled, setSoundEnabled] = useState(() => save.soundEnabled);
   const [flash, setFlash] = useState(null);
+  const [monsterComment, setMonsterComment] = useState(null);
+  const [screenFade, setScreenFade] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [largeTextMode, setLargeTextMode] = useState(false);
   const [menuScreen, setMenuScreen] = useState("title");
@@ -988,6 +991,14 @@ export default function App() {
   useEffect(() => {
     setDebugHintOpen(false);
   }, [current?.id, selectedMode]);
+
+  const prevIsTypingWrongRef = useRef(false);
+  useEffect(() => {
+    if (isTypingWrong && !prevIsTypingWrongRef.current && isBattle) {
+      triggerMonsterComment(enemy, "wrong");
+    }
+    prevIsTypingWrongRef.current = isTypingWrong;
+  }, [isTypingWrong]);
 
   useEffect(() => {
     if (debugDungeonUnlocked || selectedMode !== "debug") return;
@@ -1180,6 +1191,7 @@ export default function App() {
     setSelectedLevel(level);
     setEncounterDeck(newEncounterDeck);
     setEnemy(newEnemy);
+    triggerMonsterComment(newEnemy, "appear");
     setCurrent(firstQuestion);
     setPlayerHp(100);
     setCombo(0);
@@ -1233,10 +1245,15 @@ export default function App() {
     });
   }
 
-  function finishStageClear(message, shouldLevelUp = false) {
+  function finishStageClear(message, shouldLevelUp = false, delay = 500) {
     markStageCleared();
     setReviewMode(false);
     setBattleLog(message);
+
+    const FADE_DURATION = 500;
+    if (delay > FADE_DURATION) {
+      setTimeout(() => setScreenFade("out"), delay - FADE_DURATION);
+    }
 
     setTimeout(async () => {
       const soundSeq = resultSoundSeqRef.current + 1;
@@ -1246,6 +1263,7 @@ export default function App() {
       stopActiveSounds();
       setFlash(null);
 
+      setScreenFade("in");
       setFinished(true);
       setResultType("stageClear");
 
@@ -1256,7 +1274,15 @@ export default function App() {
       if (shouldLevelUp) {
         await playSoundAndWait("levelup", soundEnabled);
       }
-    }, 500);
+    }, delay);
+  }
+
+  function triggerMonsterComment(enemyObj, eventType) {
+    if (!enemyObj?.id) return;
+    const data = MONSTER_COMMENTS_MAP[enemyObj.id];
+    if (!data?.[eventType]) return;
+    const top = Math.floor(Math.random() * 46) + 20;
+    setMonsterComment({ text: data[eventType], icon: enemyObj.icon || enemyObj.sprite || "🐉", key: Date.now(), top, eventType });
   }
 
   function handleTimeUp() {
@@ -1272,6 +1298,7 @@ export default function App() {
       `詠唱が間に合わない！ ${damage}ダメージ！ でも大丈夫、タイピング筋は今育っている。`
     );
 
+    triggerMonsterComment(enemy, "timeup");
     setTimeout(() => setFlash(null), 300);
 
     if (nextHp <= 0) {
@@ -1331,6 +1358,14 @@ export default function App() {
     });
 
     if (nextEnemyHp <= 0) {
+      triggerMonsterComment(enemy, "defeat");
+    } else if (nextCombo >= 3) {
+      triggerMonsterComment(enemy, "combo");
+    } else {
+      triggerMonsterComment(enemy, "correct");
+    }
+
+    if (nextEnemyHp <= 0) {
       const beforeLevel = getLevelInfoFromExp(save.exp).playerLevel;
       const gainedExp = enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0);
       const afterLevel = getLevelInfoFromExp(save.exp + gainedCastExp + gainedExp)
@@ -1358,15 +1393,21 @@ export default function App() {
             shouldLevelUp ? "魔術師レベルアップ！" : "いい詠唱だった！"
           }`;
 
+      const DEFEAT_COMMENT_DELAY = 3200;
+
       if (didStageClear) {
         finishStageClear(
           `${defeatMessage} そして ${REQUIRED_QUESTIONS_PER_STAGE}問達成！ ${LEVELS[selectedLevel].stageName} クリア！`,
-          shouldLevelUp
+          shouldLevelUp,
+          DEFEAT_COMMENT_DELAY
         );
         return;
       }
 
       setBattleLog(defeatMessage);
+
+      const FADE_DURATION = 500;
+      setTimeout(() => setScreenFade("out"), DEFEAT_COMMENT_DELAY - FADE_DURATION);
 
       setTimeout(async () => {
         const soundSeq = resultSoundSeqRef.current + 1;
@@ -1376,6 +1417,7 @@ export default function App() {
         stopActiveSounds();
         setFlash(null);
 
+        setScreenFade("in");
         setFinished(true);
         setResultType(shouldLevelUp ? "levelup" : "victory");
 
@@ -1386,7 +1428,7 @@ export default function App() {
         if (shouldLevelUp) {
           await playSoundAndWait("levelup", soundEnabled);
         }
-      }, 500);
+      }, DEFEAT_COMMENT_DELAY);
 
       return;
     }
@@ -1466,6 +1508,7 @@ export default function App() {
     });
 
     setEnemy(newEnemy);
+    triggerMonsterComment(newEnemy, "appear");
     setCurrent(nextQuestion);
     setFinished(false);
     setResultType(null);
@@ -1971,7 +2014,18 @@ export default function App() {
                 variant="enemy"
               />
             </div>
+
           </section>
+
+          {monsterComment && (
+            <div
+              key={monsterComment.key}
+              className={`monster-comment-flow${monsterComment.eventType === "defeat" ? " monster-comment-flow--defeat" : ""}`}
+              style={{ background: LEVELS[selectedLevel]?.color || "#3b82f6", top: `${monsterComment.top}%` }}
+            >
+              {monsterComment.icon} {monsterComment.text}
+            </div>
+          )}
 
           <div
             style={{
@@ -2381,6 +2435,13 @@ export default function App() {
             🏰 タイトル画面へ戻る
           </button>
         </div>
+      )}
+
+      {screenFade && (
+        <div
+          className={screenFade === "out" ? "screen-fade-overlay screen-fade-out" : "screen-fade-overlay screen-fade-in"}
+          onAnimationEnd={() => { if (screenFade === "in") setScreenFade(null); }}
+        />
       )}
     </div>
   );

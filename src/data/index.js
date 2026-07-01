@@ -15,3 +15,4 @@ export {
   getBugBookEntries,
 } from "./bugs";
 export { CODE_BANK } from "./questions";
+export { MONSTER_COMMENTS_MAP } from "./comments";
