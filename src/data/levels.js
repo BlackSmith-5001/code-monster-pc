@@ -32,6 +32,6 @@ export const LEVELS = [
     enemyBase: "ドラゴン",
     stageName: "分岐の火山",
     color: "#ef4444",
-    timeLimit: 20,
+    timeLimit: 30,
   },
 ];

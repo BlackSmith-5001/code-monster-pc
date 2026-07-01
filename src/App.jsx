@@ -1622,7 +1622,7 @@ export default function App() {
       {journey && <JourneyTransition journey={journey} />}
 
       {!journey && !started && !finished && (
-        <div style={{ width: "100%", maxWidth: 1200, marginTop: 20 }}>
+        <div style={{ width: "100%", maxWidth: 1400, marginTop: 20 }}>
           <div className="lobby-layout">
             <div className="lobby-layout__left">
               <TitleHero
@@ -1631,6 +1631,12 @@ export default function App() {
                   playSound("click", soundEnabled);
                   startMenuBgm();
                 }}
+                monsterSeenCount={monstersSeen.length}
+                monsterTotal={monsterBookTotal}
+                bugFixedCount={fixedBugTypes.length}
+                bugTotal={bugBookTotal}
+                totalCasts={save.totalCasts}
+                totalPlays={(save.stagePlays || []).reduce((a, b) => a + b, 0)}
               />
             </div>
 
@@ -3039,7 +3045,7 @@ function DebugTutorialScreen({ onBack, onComplete }) {
   );
 }
 
-function TitleHero({ soundEnabled, onPlayMenuBgm }) {
+function TitleHero({ soundEnabled, onPlayMenuBgm, monsterSeenCount, monsterTotal, bugFixedCount, bugTotal, totalCasts, totalPlays }) {
   const [logoError, setLogoError] = useState(false);
   const logoSrc = "/images/title-logo.png";
   const showImageLogo = !logoError;
@@ -3090,44 +3096,48 @@ function TitleHero({ soundEnabled, onPlayMenuBgm }) {
 
         <div
           style={{
-            fontSize: "clamp(17px, 3vw, 24px)",
-            color: "#fef3c7",
-            fontWeight: 900,
-            marginBottom: 12,
-          }}
-        >
-          〜 Python呪文と半角スペースの冒険 〜
-        </div>
-
-        <div
-          style={{
-            maxWidth: 680,
-            margin: "0 auto 14px",
             background: "rgba(2,6,23,0.58)",
             border: "1px solid rgba(148,163,184,0.28)",
             borderRadius: 14,
-            padding: "12px 14px",
+            padding: "10px 14px",
             color: "#dbeafe",
-            fontSize: 14,
-            lineHeight: 1.7,
+            fontSize: 13,
+            lineHeight: 1.6,
+            marginBottom: 12,
+            textAlign: "left",
           }}
         >
-          Pythonの最初のつまずき、
-          <b style={{ color: "#67e8f9" }}> 半角スペース・クォート・コロン </b>
-          をRPGで倒すタイピングゲーム。
+          Pythonの最初のつまずき、<br />
+          <b style={{ color: "#67e8f9" }}>半角スペース・クォート・コロン</b>を<br />
+          RPGで倒すタイピングゲーム。
         </div>
 
         <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 10,
-            flexWrap: "wrap",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 8,
+            marginBottom: 12,
           }}
         >
-          <TitleBadge>🧙 ノーマル写経</TitleBadge>
-          <TitleBadge>🐞 デバッグLv.5解放</TitleBadge>
-          <TitleBadge>📘 図鑑収集予定</TitleBadge>
+          {[
+            { icon: "🐲", label: "モンスター図鑑", value: `${monsterSeenCount} / ${monsterTotal}体`, color: "#38bdf8" },
+            { icon: "📘", label: "バグ図鑑", value: `${bugFixedCount} / ${bugTotal}浄化`, color: "#fb7185" },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                background: "rgba(2,6,23,0.62)",
+                border: `1px solid ${item.color}44`,
+                borderRadius: 10,
+                padding: "8px 10px",
+                textAlign: "left",
+              }}
+            >
+              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 2 }}>{item.icon} {item.label}</div>
+              <div style={{ fontSize: 15, fontWeight: "bold", color: item.color }}>{item.value}</div>
+            </div>
+          ))}
         </div>
 
         <button
@@ -3146,6 +3156,34 @@ function TitleHero({ soundEnabled, onPlayMenuBgm }) {
         >
           🎵 メニューBGM再生
         </button>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 8,
+            marginTop: 12,
+          }}
+        >
+          {[
+            { icon: "⚔️", label: "総詠唱数", value: `${totalCasts} 回` },
+            { icon: "🎮", label: "総プレイ", value: `${totalPlays} 回` },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                background: "rgba(2,6,23,0.62)",
+                border: "1px solid #33415544",
+                borderRadius: 10,
+                padding: "8px 10px",
+                textAlign: "left",
+              }}
+            >
+              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 2 }}>{item.icon} {item.label}</div>
+              <div style={{ fontSize: 15, fontWeight: "bold", color: "#e2e8f0" }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
