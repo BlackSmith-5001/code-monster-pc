@@ -1799,7 +1799,10 @@ export default function App() {
           )}
 
           {menuScreen === "beginner" && (
-            <BeginnerGuide onBack={() => setMenuScreen("title")} />
+            <BeginnerGuide
+              onBack={() => setMenuScreen("title")}
+              onGoAdventure={() => setMenuScreen("adventure")}
+            />
           )}
         </div>
       )}
@@ -2082,12 +2085,28 @@ export default function App() {
               </div>
             )}
 
-            <SpellPreview
-              target={answerCode}
-              typed={typed}
-              hideRemaining={selectedMode === "debug"}
-            />
-          </div>
+          <SpellPreview
+            target={answerCode}
+            typed={typed}
+            hideRemaining={selectedMode === "debug"}
+          />
+        </div>
+
+          {selectedLevel <= 1 && (
+            <div
+              style={{
+                background: "rgba(30,64,175,0.25)",
+                border: "1px solid #3b82f6",
+                borderRadius: 8,
+                padding: "8px 12px",
+                marginBottom: 8,
+                fontSize: 13,
+                color: "#93c5fd",
+              }}
+            >
+              💡 入力のコツ：{current?.tips?.[0] || "記号（= ' \" ( ) : *）は半角で。スペースも半角で。大文字小文字はそのまま入力します。"}
+            </div>
+          )}
 
           <input
             ref={inputRef}
@@ -4192,7 +4211,7 @@ function MonsterDetail({ monster, number, seen, defeated, linked, visible }) {
   );
 }
 
-function BeginnerGuide({ onBack }) {
+function BeginnerGuide({ onBack, onGoAdventure }) {
   const [selectedLesson, setSelectedLesson] = useState(null);
   const lessons = [
     {
@@ -4316,17 +4335,37 @@ function BeginnerGuide({ onBack }) {
         </div>
 
         {!lesson && (
-          <div className="beginner-house__list">
-            {lessons.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                onClick={() => setSelectedLesson(item.id)}
-              >
-                {item.title}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="beginner-house__list">
+              {lessons.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => setSelectedLesson(item.id)}
+                >
+                  {item.title}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onGoAdventure}
+              style={{
+                marginTop: 16,
+                width: "100%",
+                padding: "12px",
+                fontSize: 15,
+                background: "#1e40af",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              ⚔️ 読んだら冒険へ出発！ →
+            </button>
+          </>
         )}
 
         {lesson && (
