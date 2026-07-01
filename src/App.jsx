@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   LEVELS,
   CODE_BANK,
@@ -3205,32 +3205,57 @@ function TitleHero({
         sortKey: monster.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), index * 31),
       }))
       .sort((a, b) => a.sortKey - b.sortKey)
-      .slice(0, 6)
+      .slice(0, 12)
       .map(({ monster }, index) => {
         const seed = monster.id.split("").reduce((sum, char) => sum + char.charCodeAt(0), index * 17);
+        const hasImage = Boolean(monster.image);
+        const type = hasImage && seed % 10 !== 0 ? "image" : "emoji";
+        const bounce = seed % 3;
+        const snake = seed % 2;
+        const animationName =
+          bounce === 0 && snake === 0
+            ? "monster-parade-bounce-snake"
+            : bounce !== 2
+              ? "monster-parade-bounce"
+              : snake === 0
+                ? "monster-parade-snake"
+                : "monster-parade";
 
         return {
           id: monster.id,
+          type,
+          image: monster.image,
           icon: monster.icon || monster.sprite || "❓",
           name: monster.name,
-          top: 10 + (seed % 61),
-          size: 24 + (seed % 9),
-          duration: 12 + (seed % 9),
+          top: type === "image" ? 4 + (seed % 52) : 10 + (seed % 61),
+          size: type === "image" ? 40 + (seed % 20) : 24 + (seed % 9),
+          duration: 10 + (seed % 8),
           delay: -(seed % 16),
+          animationName,
         };
       });
   }, [monstersSeen]);
   const lastClearedLevel = clearedLevels.length > 0 ? Math.max(...clearedLevels) : null;
   const lastStageColor = Number.isInteger(lastClearedLevel) ? LEVELS[lastClearedLevel]?.color : null;
-  const paradeBackground = lastStageColor
+  const stageBgImage = Number.isInteger(lastClearedLevel)
+    ? `url('/images/stages/lv${lastClearedLevel + 1}.png')`
+    : null;
+  const paradeGradient = lastStageColor
     ? `linear-gradient(180deg, ${lastStageColor}33 0%, ${lastStageColor}22 100%)`
     : "linear-gradient(180deg, #14532d 0%, #166534 60%, #15803d 100%)";
+  const paradeBackground = lastStageColor
+    ? `${stageBgImage}, ${paradeGradient}`
+    : paradeGradient;
 
   return (
     <div
       style={{
         position: "relative",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        boxSizing: "border-box",
         background:
           "linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.92), rgba(88,28,135,0.72))",
         border: "1px solid rgba(125,211,252,0.55)",
@@ -3250,7 +3275,7 @@ function TitleHero({
         }}
       />
 
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", flex: 1 }}>
         <div
           style={{
             display: "inline-block",
@@ -3364,21 +3389,38 @@ function TitleHero({
         {paradeMonsters.length > 0 && (
           <div className="monster-parade" style={{ background: paradeBackground }}>
             <div className="monster-parade__ground" />
-            {paradeMonsters.map((monster) => (
-              <span
-                key={monster.id}
-                className="monster-parade__monster"
-                title={monster.name}
-                style={{
-                  top: `${monster.top}%`,
-                  fontSize: `${monster.size}px`,
-                  animationDuration: `${monster.duration}s`,
-                  animationDelay: `${monster.delay}s`,
-                }}
-              >
-                {monster.icon}
-              </span>
-            ))}
+            {paradeMonsters.map((monster) =>
+              monster.type === "image" ? (
+                <img
+                  key={monster.id}
+                  src={monster.image}
+                  alt={monster.name}
+                  className="monster-parade__monster monster-parade__monster--image"
+                  style={{
+                    top: `${monster.top}%`,
+                    width: `${monster.size}px`,
+                    animationName: monster.animationName,
+                    animationDuration: `${monster.duration}s`,
+                    animationDelay: `${monster.delay}s`,
+                  }}
+                />
+              ) : (
+                <span
+                  key={monster.id}
+                  className="monster-parade__monster"
+                  title={monster.name}
+                  style={{
+                    top: `${monster.top}%`,
+                    fontSize: `${monster.size}px`,
+                    animationName: monster.animationName,
+                    animationDuration: `${monster.duration}s`,
+                    animationDelay: `${monster.delay}s`,
+                  }}
+                >
+                  {monster.icon}
+                </span>
+              )
+            )}
           </div>
         )}
       </div>
