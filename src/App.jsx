@@ -3,6 +3,7 @@ import {
   LEVELS,
   CODE_BANK,
   ENEMY_VARIANTS,
+  EVOLVED_MONSTERS,
   RARITY_LABELS,
   RARITY_COLORS,
   getMonsterBookEntries,
@@ -331,6 +332,8 @@ const INITIAL_SAVE = {
   },
   selectedTitleId: "apprentice_mage",
   unlockedTitleIds: ["apprentice_mage"],
+  equippedMonsterId: null,
+  companionData: {},
 };
 
 function sanitizeNumber(value, fallback) {
@@ -343,6 +346,22 @@ function sanitizeArray(value, fallback) {
 
 function sanitizeStringArray(value, fallback) {
   return sanitizeArray(value, fallback).filter((item) => typeof item === "string");
+}
+
+function sanitizeCompanionData(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([monsterId, data]) => typeof monsterId === "string" && data && typeof data === "object")
+      .map(([monsterId, data]) => [
+        monsterId,
+        {
+          skillCount: sanitizeNumber(data.skillCount, 0),
+          evolutionStage: sanitizeNumber(data.evolutionStage, 0),
+        },
+      ])
+  );
 }
 
 function sanitizeStagePlays(value) {
@@ -430,6 +449,10 @@ function sanitizeSave(parsed) {
     selectedTitleId: sanitizeTitleId(source.selectedTitleId),
     unlockedTitleIds: sanitizeStringArray(source.unlockedTitleIds, INITIAL_SAVE.unlockedTitleIds)
       .filter((titleId) => TITLE_LIST.some((title) => title.id === titleId)),
+    equippedMonsterId: typeof source.equippedMonsterId === "string"
+      ? source.equippedMonsterId
+      : INITIAL_SAVE.equippedMonsterId,
+    companionData: sanitizeCompanionData(source.companionData),
   };
 }
 
@@ -1047,6 +1070,80 @@ function getRandomEnemy(stageLevel) {
   };
 }
 
+function getBaseMonsterForEvolution(monsterId) {
+  const evolved = EVOLVED_MONSTERS.find((monster) => monster.id === monsterId);
+  if (!evolved) return ENEMY_VARIANTS.find((monster) => monster.id === monsterId) || null;
+  return getBaseMonsterForEvolution(evolved.evolvedFrom);
+}
+
+function getCompanionMonster(save) {
+  if (!save?.equippedMonsterId) return null;
+
+  const id = save.equippedMonsterId;
+  const evolved = EVOLVED_MONSTERS.find((monster) => monster.id === id);
+  const base = ENEMY_VARIANTS.find((monster) => monster.id === id) || getBaseMonsterForEvolution(id);
+  const monster = evolved || base;
+
+  if (!monster) return null;
+
+  return {
+    ...base,
+    ...monster,
+    image: monster.image || base?.image || "",
+    icon: monster.icon || base?.icon || base?.sprite || "✨",
+    sprite: monster.sprite || monster.icon || base?.sprite || base?.icon || "✨",
+    assistSkill: monster.assistSkill || { name: "応援", effect: "コンボ+3", type: "combo", value: 3 },
+  };
+}
+
+function getEvolutionStage(monsterId) {
+  if (monsterId?.endsWith("_final")) return 2;
+  if (monsterId?.endsWith("_evolved")) return 1;
+  return 0;
+}
+
+function getEvolvedId(monsterId) {
+  const evolved = EVOLVED_MONSTERS.find((monster) => monster.evolvedFrom === monsterId);
+  return evolved?.id || null;
+}
+
+function getEvolutionThreshold(monsterId) {
+  return getEvolutionStage(monsterId) === 0 ? 5 : 12;
+}
+
+function getCompanionSkillCount(save, monsterId) {
+  return save?.companionData?.[monsterId]?.skillCount || 0;
+}
+
+function getOwnedCompanionMonsters(save) {
+  const ownedIds = new Set([
+    ...(save.monstersDefeatedIds || []),
+    ...(save.linkedMonsterIds || []),
+  ]);
+
+  if (save.equippedMonsterId) {
+    ownedIds.add(save.equippedMonsterId);
+  }
+
+  return Array.from(ownedIds)
+    .map((id) => {
+      const evolved = EVOLVED_MONSTERS.find((monster) => monster.id === id);
+      const base = ENEMY_VARIANTS.find((monster) => monster.id === id) || getBaseMonsterForEvolution(id);
+      const monster = evolved || base;
+      if (!monster) return null;
+
+      return {
+        ...base,
+        ...monster,
+        image: monster.image || base?.image || "",
+        icon: monster.icon || base?.icon || base?.sprite || "✨",
+        sprite: monster.sprite || monster.icon || base?.sprite || base?.icon || "✨",
+        assistSkill: monster.assistSkill || { name: "応援", effect: "コンボ+3", type: "combo", value: 3 },
+      };
+    })
+    .filter(Boolean);
+}
+
 
 function shuffleArray(items) {
   const copied = [...items];
@@ -1168,6 +1265,13 @@ export default function App() {
   const [showEffectChanceBanner, setShowEffectChanceBanner] = useState(false);
   const [questionsSinceEffect, setQuestionsSinceEffect] = useState(0);
   const [nextEffectAt, setNextEffectAt] = useState(() => getNextEffectChanceAt());
+  const [assistGauge, setAssistGauge] = useState(0);
+  const [assistActive, setAssistActive] = useState(false);
+  const [assistDisplayCompanion, setAssistDisplayCompanion] = useState(null);
+  const [shieldFromAssist, setShieldFromAssist] = useState(false);
+  const [damageMultiplierFromAssist, setDamageMultiplierFromAssist] = useState(1);
+  const [comboProtectFromAssist, setComboProtectFromAssist] = useState(false);
+  const [lastDamageDealt, setLastDamageDealt] = useState(0);
 
   const [soundEnabled, setSoundEnabled] = useState(() => save.soundEnabled);
   const [flash, setFlash] = useState(null);
@@ -1302,6 +1406,8 @@ export default function App() {
   const stageQuestionPoolTotal = getQuestionCountForLevel(selectedLevel);
   const currentQuestionNumber = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
   const answeredQuestionCount = Math.min(questionCount, REQUIRED_QUESTIONS_PER_STAGE);
+  const companion = getCompanionMonster(save);
+  const ownedCompanions = getOwnedCompanionMonsters(save);
 
   const answerCode = current ? getAnswerCode(current) : "";
   const shownCode = current ? getShownCode(current, selectedMode) : "";
@@ -1545,6 +1651,7 @@ export default function App() {
     setElapsed(0);
     setReviewMode(false);
     resetEffectChanceState();
+    resetAssistState();
     setStarted(true);
     setFinished(false);
     setResultType(null);
@@ -1578,6 +1685,7 @@ export default function App() {
     setRecentTitleUnlocks([]);
     setReviewMode(false);
     resetEffectChanceState();
+    resetAssistState();
     setBattleLog("街へ帰還した。勇気ある撤退もまた立派なデバッグ。");
   }
 
@@ -1801,7 +1909,139 @@ export default function App() {
     };
   }
 
+  function resetAssistState() {
+    setAssistGauge(0);
+    setAssistActive(false);
+    setAssistDisplayCompanion(null);
+    setShieldFromAssist(false);
+    setDamageMultiplierFromAssist(1);
+    setComboProtectFromAssist(false);
+    setLastDamageDealt(0);
+  }
+
+  function triggerAssist(activeCompanion, currentCombo) {
+    if (!activeCompanion?.assistSkill) return;
+
+    const skill = activeCompanion.assistSkill;
+    setAssistActive(true);
+    setAssistDisplayCompanion(activeCompanion);
+    playSound("levelup", soundEnabled);
+
+    if (skill.type === "heal") {
+      setPlayerHp((hp) => Math.min(100, hp + skill.value));
+      if (skill.comboBonus) setCombo((currentComboValue) => currentComboValue + skill.comboBonus);
+      if (skill.timeBonus) setEffectTimeBonus((bonus) => bonus + skill.timeBonus);
+      if (skill.damageBonus) setDamageMultiplierFromAssist(skill.damageBonus);
+    } else if (skill.type === "damage") {
+      setDamageMultiplierFromAssist(skill.value);
+    } else if (skill.type === "time") {
+      setEffectTimeBonus((bonus) => bonus + skill.value);
+    } else if (skill.type === "shield") {
+      setShieldFromAssist(true);
+    } else if (skill.type === "combo") {
+      setCombo((currentComboValue) => currentComboValue + skill.value);
+      if (skill.damageBonus) setDamageMultiplierFromAssist(skill.damageBonus);
+    } else if (skill.type === "comboProtect") {
+      setComboProtectFromAssist(true);
+    } else if (skill.type === "repeatDamage") {
+      setDamageMultiplierFromAssist(lastDamageDealt > 0 ? 2 : 1.5);
+    } else if (skill.type === "comboDamage") {
+      setDamageMultiplierFromAssist(1 + Math.min(currentCombo * skill.value * 0.1, 2.5));
+    } else if (skill.type === "percentDamage") {
+      setDamageMultiplierFromAssist(2);
+    } else if (skill.type === "lifesteal") {
+      setDamageMultiplierFromAssist(1.5);
+      setPlayerHp((hp) => Math.min(100, hp + Math.max(10, Math.round(lastDamageDealt * skill.value))));
+    }
+
+    setBattleLog(`✨ ${activeCompanion.name}の「${skill.name}」発動！ ${skill.effect}`);
+
+    setSave((prev) => {
+      const currentData = prev.companionData?.[activeCompanion.id] || { skillCount: 0, evolutionStage: getEvolutionStage(activeCompanion.id) };
+      const nextSkillCount = (currentData.skillCount || 0) + 1;
+      const nextCompanionData = {
+        ...(prev.companionData || {}),
+        [activeCompanion.id]: {
+          ...currentData,
+          skillCount: nextSkillCount,
+          evolutionStage: getEvolutionStage(activeCompanion.id),
+        },
+      };
+      const nextId = nextSkillCount >= getEvolutionThreshold(activeCompanion.id)
+        ? getEvolvedId(activeCompanion.id)
+        : null;
+
+      if (!nextId) {
+        return {
+          ...prev,
+          companionData: nextCompanionData,
+        };
+      }
+
+      const nextMonster = EVOLVED_MONSTERS.find((monster) => monster.id === nextId);
+      setBattleLog(`🌟 ${activeCompanion.name}が「${nextMonster?.name || nextId}」へ進化した！`);
+
+      return {
+        ...prev,
+        equippedMonsterId: nextId,
+        companionData: {
+          ...nextCompanionData,
+          [nextId]: {
+            skillCount: 0,
+            evolutionStage: getEvolutionStage(nextId),
+          },
+        },
+      };
+    });
+
+    setTimeout(() => {
+      setAssistActive(false);
+      setAssistDisplayCompanion(null);
+    }, 2200);
+  }
+
+  function gainAssistGauge(activeCompanion, nextCombo) {
+    if (!activeCompanion) return;
+
+    const gaugeGain = 15 + Math.min(nextCombo * 2, 20);
+    const nextGauge = assistGauge + gaugeGain;
+
+    if (nextGauge >= 100) {
+      setAssistGauge(0);
+      triggerAssist(activeCompanion, nextCombo);
+      return;
+    }
+
+    setAssistGauge(nextGauge);
+  }
+
   function handleTimeUp() {
+    if (shieldFromAssist) {
+      setShieldFromAssist(false);
+      setFlash("ok");
+      playSound("ok", soundEnabled);
+      setBattleLog("✨ 相棒のシールドが攻撃を防いだ！ もう一度落ち着いて唱えよう。");
+      setTimeout(() => {
+        setFlash(null);
+        setEffectTimeBonus(0);
+        startTimerAgain();
+      }, 350);
+      return;
+    }
+
+    if (comboProtectFromAssist) {
+      setComboProtectFromAssist(false);
+      setFlash("ok");
+      playSound("ok", soundEnabled);
+      setBattleLog("✨ 相棒がコンボを守った！ ミスしても流れは切れていない。");
+      setTimeout(() => {
+        setFlash(null);
+        setEffectTimeBonus(0);
+        startTimerAgain();
+      }, 350);
+      return;
+    }
+
     if (shieldActive) {
       setShieldActive(false);
       setCombo(0);
@@ -1858,7 +2098,7 @@ export default function App() {
     const isCritical = remaining >= Math.ceil(TIME_LIMIT * 0.6) || combo >= 2;
     const baseDamage = wasReview ? 50 + selectedLevel * 10 : 40 + selectedLevel * 8;
     const titleDamage = applyTitleDamageBonus(isCritical ? baseDamage + 20 : baseDamage, combo + 1, activePassive);
-    const damage = Math.round(titleDamage * damageMultiplier);
+    const damage = Math.round(titleDamage * damageMultiplier * damageMultiplierFromAssist);
     const nextEnemyHp = Math.max(0, enemy.hp - damage);
     const nextCombo = combo + 1;
 
@@ -1878,9 +2118,14 @@ export default function App() {
     if (damageMultiplier !== 1) {
       setDamageMultiplier(1);
     }
+    if (damageMultiplierFromAssist !== 1) {
+      setDamageMultiplierFromAssist(1);
+    }
     if (effectTimeBonus > 0) {
       setEffectTimeBonus(0);
     }
+    setLastDamageDealt(damage);
+    gainAssistGauge(companion, nextCombo);
     setFlash(isCritical ? "critical" : "ok");
     playSound(isCritical ? "critical" : "ok", soundEnabled);
 
@@ -2148,6 +2393,7 @@ export default function App() {
     setReviewMode(false);
     setEnemy(null);
     resetEffectChanceState();
+    resetAssistState();
     setBattleLog("街へ帰還した。次の冒険に備えよう。");
   }
 
@@ -2182,6 +2428,7 @@ export default function App() {
     setEnemy(null);
     setCurrent(null);
     resetEffectChanceState();
+    resetAssistState();
     setTyped("");
     setElapsed(0);
     setBattleLog("セーブデータをリセットした。新たな冒険の始まりだ！");
@@ -2327,9 +2574,18 @@ export default function App() {
               debugTutorialCompleted={save.debugTutorialCompleted}
               titles={unlockedTitles}
               activeTitleId={activeTitle.id}
+              companions={ownedCompanions}
+              activeCompanionId={save.equippedMonsterId}
+              companionData={save.companionData}
+              assistGauge={assistGauge}
               onBack={() => setMenuScreen("title")}
               onSelectTitle={(titleId) => {
                 setSave((prev) => ({ ...prev, selectedTitleId: titleId }));
+                playSound("click", soundEnabled);
+              }}
+              onSelectCompanion={(monsterId) => {
+                setSave((prev) => ({ ...prev, equippedMonsterId: monsterId }));
+                setAssistGauge(0);
                 playSound("click", soundEnabled);
               }}
               onSelectMode={(mode) => {
@@ -2513,6 +2769,36 @@ export default function App() {
               🏳️ 街に戻る
             </button>
           </div>
+
+          {companion && (
+            <div className="assist-gauge">
+              <span>🤝 相棒：{companion.name}</span>
+              <b>{assistGauge} / 100</b>
+              <div className="assist-gauge__track">
+                <div style={{ width: `${Math.min(100, assistGauge)}%` }} />
+              </div>
+            </div>
+          )}
+
+          {assistActive && (assistDisplayCompanion || companion) && (
+            <div className="assist-cutin-overlay">
+              {(assistDisplayCompanion || companion).image ? (
+                <img
+                  src={(assistDisplayCompanion || companion).image}
+                  alt={(assistDisplayCompanion || companion).name}
+                  className="assist-cutin-monster"
+                />
+              ) : (
+                <div className="assist-cutin-monster assist-cutin-monster--emoji">
+                  {(assistDisplayCompanion || companion).icon || (assistDisplayCompanion || companion).sprite || "✨"}
+                </div>
+              )}
+              <div className="assist-cutin-skill">
+                <span className="assist-cutin-name">{(assistDisplayCompanion || companion).name}</span>
+                <span className="assist-cutin-effect">✨ {(assistDisplayCompanion || companion).assistSkill.name}</span>
+              </div>
+            </div>
+          )}
 
           {effectChanceActive && currentEffectQuestion && (
             <div className="effect-chance-overlay">
@@ -3593,8 +3879,13 @@ function AdventureMenuScreen({
   debugTutorialCompleted,
   titles,
   activeTitleId,
+  companions,
+  activeCompanionId,
+  companionData,
+  assistGauge,
   onSelectMode,
   onSelectTitle,
+  onSelectCompanion,
   onBack,
 }) {
   return (
@@ -3611,6 +3902,13 @@ function AdventureMenuScreen({
         titles={titles}
         activeTitleId={activeTitleId}
         onSelectTitle={onSelectTitle}
+      />
+      <CompanionPanel
+        companions={companions}
+        activeCompanionId={activeCompanionId}
+        companionData={companionData}
+        assistGauge={assistGauge}
+        onSelectCompanion={onSelectCompanion}
       />
     </MenuScreenFrame>
   );
@@ -4273,6 +4571,89 @@ function TitleCollectionPanel({ titles, activeTitleId, onSelectTitle }) {
               </button>
             );
           })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CompanionPanel({ companions, activeCompanionId, companionData, assistGauge, onSelectCompanion }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const activeCompanion = companions.find((monster) => monster.id === activeCompanionId);
+
+  return (
+    <section className={`companion-panel ${isOpen ? "" : "companion-panel--closed"}`}>
+      <div className="companion-panel__header">
+        <div>
+          <h3>🤝 相棒モンスター</h3>
+          <p>
+            討伐済み・転送済みのモンスターから1体を相棒にできます。コンボでゲージが溜まると、戦闘中にアシスト技を発動します。
+          </p>
+        </div>
+        <div className="companion-panel__active">
+          <span>現在の相棒</span>
+          <b>{activeCompanion?.name || "未設定"}</b>
+          <small>{companions.length}体から選択可能</small>
+        </div>
+      </div>
+
+      <div className="companion-panel__gauge">
+        <span>アシストゲージ</span>
+        <b>{assistGauge} / 100</b>
+        <div className="companion-panel__track">
+          <div style={{ width: `${Math.min(100, assistGauge)}%` }} />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="companion-panel__toggle"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        {isOpen ? "相棒メニューを閉じる ▲" : "相棒メニューを開く ▼"}
+      </button>
+
+      {isOpen && (
+        <div className="companion-panel__grid">
+          {companions.length === 0 ? (
+            <div className="companion-panel__empty">
+              まだ相棒にできるモンスターがいません。まずはモンスターを討伐、または転送呪文で連携してみよう。
+            </div>
+          ) : (
+            companions.map((monster) => {
+              const active = monster.id === activeCompanionId;
+              const skillCount = getCompanionSkillCount({ companionData }, monster.id);
+              const nextEvolutionId = getEvolvedId(monster.id);
+              const threshold = getEvolutionThreshold(monster.id);
+              const remaining = nextEvolutionId ? Math.max(0, threshold - skillCount) : 0;
+
+              return (
+                <button
+                  type="button"
+                  key={monster.id}
+                  className={`companion-card ${active ? "companion-card--active" : ""}`}
+                  onClick={() => onSelectCompanion(monster.id)}
+                >
+                  <span className="companion-card__state">{active ? "相棒中" : "セット"}</span>
+                  <span className="companion-card__visual">
+                    {monster.image ? (
+                      <img src={monster.image} alt={monster.name} />
+                    ) : (
+                      <span>{monster.icon || monster.sprite || "✨"}</span>
+                    )}
+                  </span>
+                  <strong>{monster.name}</strong>
+                  <small>{monster.assistSkill.name}：{monster.assistSkill.effect}</small>
+                  <small>
+                    {nextEvolutionId
+                      ? `進化まであと ${remaining} 回発動`
+                      : "最終進化済み / 進化なし"}
+                  </small>
+                </button>
+              );
+            })
+          )}
         </div>
       )}
     </section>

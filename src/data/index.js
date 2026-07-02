@@ -4,6 +4,7 @@
 export { LEVELS } from "./levels";
 export {
   ENEMY_VARIANTS,
+  EVOLVED_MONSTERS,
   RARITY_LABELS,
   RARITY_COLORS,
   getMonsterBookEntries,
