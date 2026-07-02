@@ -2308,6 +2308,31 @@
   flex-shrink: 0;
 }
 
+.title-card__passive {
+  display: block;
+  margin-top: 7px;
+  color: #fde68a;
+  font-weight: 800;
+}
+
+.stage-clear-trophy {
+  font-size: 72px;
+  margin-bottom: 8px;
+  animation: trophy-float 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 10px 18px rgba(251, 191, 36, 0.32));
+}
+
+@keyframes trophy-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 @keyframes marquee-scroll {
   0% {
     transform: translateX(0);

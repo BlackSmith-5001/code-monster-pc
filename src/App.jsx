@@ -102,54 +102,63 @@ const TITLE_LIST = [
     id: "apprentice_mage",
     name: "見習い魔術師",
     description: "最初から名乗れる、はじまりの称号。",
+    passive: { type: "none", value: 0 },
     isUnlocked: () => true,
   },
   {
     id: "space_graduate",
     name: "半角スペース見習い卒業生",
     description: "30回以上コードを唱えた証。",
+    passive: { type: "damageBonus", value: 2 },
     isUnlocked: ({ save }) => (save.totalCasts || 0) >= 30,
   },
   {
     id: "quote_user",
     name: "クォート使い",
     description: "Lv.3以上になった魔術師の基礎称号。",
+    passive: { type: "comboBonus", value: 5 },
     isUnlocked: ({ playerLevel }) => playerLevel >= 3,
   },
   {
     id: "variable_ruler",
     name: "変数を統べる者",
     description: "Lv.5以上で名乗れる変数使いの称号。",
+    passive: { type: "expBonus", value: 0.1 },
     isUnlocked: ({ playerLevel }) => playerLevel >= 5,
   },
   {
     id: "branch_sage",
     name: "条件分岐の賢者",
     description: "Lv.8以上、またはLv.4クリアで解放。",
+    passive: { type: "timeBonus", value: 3 },
     isUnlocked: ({ playerLevel, save }) => playerLevel >= 8 || (save.clearedLevels || []).includes(3),
   },
   {
     id: "legend_debugger",
     name: "伝説のデバッガー",
     description: "バグを10回以上浄化した証。",
+    passive: { type: "damageBonus", value: 5 },
     isUnlocked: ({ save }) => (save.debugCleanses || 0) >= 10,
   },
   {
     id: "slime_hunter",
     name: "スライムハンター",
     description: "モンスターを10体以上討伐すると解放。",
+    passive: { type: "comboBonus", value: 8 },
     isUnlocked: ({ save }) => (save.monstersDefeatedIds || []).length >= 10 || (save.monstersDefeated || 0) >= 10,
   },
   {
     id: "bug_cleanser",
     name: "バグ浄化師",
     description: "デバッグダンジョンで3回以上バグを直した証。",
+    passive: { type: "expBonus", value: 0.15 },
     isUnlocked: ({ save }) => (save.debugCleanses || 0) >= 3,
   },
   {
     id: "rare_observer",
     name: "レアモンスター観測者",
     description: "rare以上のモンスターを発見すると解放。",
+    passive: { type: "damageBonus", value: 3 },
     isUnlocked: ({ save }) => {
       const seen = new Set(save.monstersSeen || []);
       return ENEMY_VARIANTS.some((monster) => seen.has(monster.id) && ["rare", "epic"].includes(monster.rarity));
@@ -159,42 +168,49 @@ const TITLE_LIST = [
     id: "combo_master",
     name: "コンボマスター",
     description: "最大コンボ10以上を記録した証。",
+    passive: { type: "comboBonus", value: 12 },
     isUnlocked: ({ save }) => (save.maxCombo || 0) >= 10,
   },
   {
     id: "monster_collector",
     name: "モンスター蒐集家",
     description: "30体以上のモンスターを発見した証。",
+    passive: { type: "expBonus", value: 0.08 },
     isUnlocked: ({ save }) => (save.monstersSeen || []).length >= 30,
   },
   {
     id: "century_caster",
     name: "百呪詠唱師",
     description: "100回以上コードを唱えた大魔術師。",
+    passive: { type: "damageBonus", value: 4 },
     isUnlocked: ({ save }) => (save.totalCasts || 0) >= 100,
   },
   {
     id: "stage_conqueror",
     name: "全ステージ制覇者",
     description: "全4ステージをクリアした証。",
+    passive: { type: "timeBonus", value: 5 },
     isUnlocked: ({ save }) => (save.clearedLevels || []).length >= 4,
   },
   {
     id: "explorer",
     name: "冒険者",
     description: "10回以上プレイした証。",
+    passive: { type: "timeBonus", value: 2 },
     isUnlocked: ({ save }) => (save.stagePlays || []).reduce((a, b) => a + b, 0) >= 10,
   },
   {
     id: "monster_slayer",
     name: "モンスタースレイヤー",
     description: "50体以上のモンスターを討伐した証。",
+    passive: { type: "damageBonus", value: 6 },
     isUnlocked: ({ save }) => (save.monstersDefeatedIds || []).length >= 50 || (save.monstersDefeated || 0) >= 50,
   },
   {
     id: "encyclopedia",
     name: "図鑑の探求者",
     description: "モンスターを50体以上発見した証。",
+    passive: { type: "expBonus", value: 0.12 },
     isUnlocked: ({ save }) => (save.monstersSeen || []).length >= 50,
   },
 ];
@@ -404,6 +420,34 @@ function getNewlyUnlockedTitles(prevSave, nextSave, nextPlayerLevel) {
       !prevIds.has(title.id) &&
       title.isUnlocked({ save: nextSave, playerLevel: nextPlayerLevel })
   );
+}
+
+function describePassive(passive) {
+  if (!passive || passive.type === "none") return "";
+  if (passive.type === "comboBonus") return `コンボダメージ +${passive.value}%`;
+  if (passive.type === "damageBonus") return `正解ダメージ +${passive.value}`;
+  if (passive.type === "timeBonus") return `制限時間 +${passive.value}秒`;
+  if (passive.type === "expBonus") return `獲得EXP +${Math.round(passive.value * 100)}%`;
+  return "";
+}
+
+function applyTitleDamageBonus(baseDamage, comboCount, passive) {
+  let nextDamage = baseDamage;
+
+  if (passive?.type === "damageBonus") {
+    nextDamage += passive.value;
+  }
+
+  if (passive?.type === "comboBonus" && comboCount >= 2) {
+    nextDamage = Math.round(nextDamage * (1 + passive.value / 100));
+  }
+
+  return nextDamage;
+}
+
+function applyTitleExpBonus(baseExp, passive) {
+  if (passive?.type !== "expBonus") return baseExp;
+  return Math.max(1, Math.round(baseExp * (1 + passive.value)));
 }
 
 function getActiveTitle(save, playerLevel) {
@@ -1027,14 +1071,15 @@ export default function App() {
   const journeyTimerRef = useRef(null);
 
   const stage = LEVELS[selectedLevel];
-  const TIME_LIMIT = selectedMode === "debug" ? stage.timeLimit + 25 : stage.timeLimit;
-  const remaining = Math.max(0, TIME_LIMIT - elapsed);
-
   const playerLevelInfo = getLevelInfoFromExp(save.exp);
   const debugDungeonUnlocked = playerLevelInfo.playerLevel >= DEBUG_UNLOCK_LEVEL;
   const debugUnlockRemainingExp = Math.max(0, getTotalExpForLevel(DEBUG_UNLOCK_LEVEL) - save.exp);
   const unlockedTitles = getUnlockedTitles(save, playerLevelInfo.playerLevel);
   const activeTitle = getActiveTitle(save, playerLevelInfo.playerLevel);
+  const activePassive = activeTitle.passive || { type: "none", value: 0 };
+  const timeBonus = activePassive.type === "timeBonus" ? activePassive.value : 0;
+  const TIME_LIMIT = (selectedMode === "debug" ? stage.timeLimit + 25 : stage.timeLimit) + timeBonus;
+  const remaining = Math.max(0, TIME_LIMIT - elapsed);
   const playerTitle = activeTitle.name;
   const recommendedStage = getRecommendedStage(playerLevelInfo.playerLevel);
   const expPercent = Math.min(
@@ -1426,11 +1471,14 @@ export default function App() {
     const wasReview = reviewMode;
     const isCritical = remaining >= Math.ceil(TIME_LIMIT * 0.6) || combo >= 2;
     const baseDamage = wasReview ? 50 + selectedLevel * 10 : 40 + selectedLevel * 8;
-    const damage = isCritical ? baseDamage + 20 : baseDamage;
+    const damage = applyTitleDamageBonus(isCritical ? baseDamage + 20 : baseDamage, combo + 1, activePassive);
     const nextEnemyHp = Math.max(0, enemy.hp - damage);
     const nextCombo = combo + 1;
 
-    const gainedCastExp = (wasReview ? 8 : 5) + (selectedMode === "debug" ? 3 : 0);
+    const gainedCastExp = applyTitleExpBonus(
+      (wasReview ? 8 : 5) + (selectedMode === "debug" ? 3 : 0),
+      activePassive
+    );
 
     setEnemy((prev) => ({
       ...prev,
@@ -1473,7 +1521,7 @@ export default function App() {
 
     if (nextEnemyHp <= 0) {
       const beforeLevel = getLevelInfoFromExp(save.exp).playerLevel;
-      const gainedExp = enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0);
+      const gainedExp = applyTitleExpBonus(enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0), activePassive);
       const afterLevel = getLevelInfoFromExp(save.exp + gainedCastExp + gainedExp)
         .playerLevel;
       const shouldLevelUp = afterLevel > beforeLevel;
@@ -2658,24 +2706,35 @@ function LevelClearScreen({ stage, battleLog, requiredQuestions, combo, playerLe
         width: "100%",
         maxWidth: 760,
         background:
-          "radial-gradient(circle at top, rgba(251,191,36,0.24), rgba(15,23,42,0.98) 45%, rgba(2,6,23,0.98))",
-        border: "2px solid #fbbf24",
+          `radial-gradient(circle at top, ${stage.color}30, rgba(15,23,42,0.98) 50%, rgba(2,6,23,0.98))`,
+        border: `2px solid ${stage.color}`,
         borderRadius: 22,
         padding: 30,
         textAlign: "center",
-        boxShadow: "0 28px 90px rgba(251,191,36,0.18)",
+        boxShadow: "0 28px 90px rgba(251,191,36,0.28), 0 0 60px rgba(251,191,36,0.12)",
         boxSizing: "border-box",
       }}
     >
-      <div style={{ fontSize: 58, marginBottom: 8 }}>🏆✨</div>
+      <div className="stage-clear-trophy">🏆</div>
+
+      <div style={{ fontSize: 28, marginBottom: 4 }}>{stage.emoji}</div>
 
       <div style={{ color: stage.color, fontWeight: 900, marginBottom: 4 }}>
         {stage.label}
       </div>
 
-      <h1 style={{ color: "#fef3c7", margin: "0 0 10px 0", fontSize: 34 }}>
-        LVクリア！
+      <h1 style={{ color: "#fef3c7", margin: "0 0 10px 0", fontSize: "clamp(28px, 5vw, 42px)" }}>
+        ステージクリア！
       </h1>
+
+      <div
+        style={{
+          width: "min(280px, 72%)",
+          margin: "0 auto 14px",
+          borderBottom: `3px solid ${stage.color}`,
+          boxShadow: `0 0 18px ${stage.color}88`,
+        }}
+      />
 
       <h2 style={{ color: "#f8fafc", margin: "0 0 16px 0" }}>
         {stage.stageName} 突破！
@@ -3657,7 +3716,7 @@ function TitleCollectionPanel({ titles, activeTitleId, onSelectTitle }) {
           <h3>🏅 称号一覧</h3>
           <p>
             {isOpen
-              ? "獲得済み称号を確認して、現在の称号を付け替えられます。称号効果は今後の拡張用です。"
+              ? "獲得済み称号を確認して、現在の称号を付け替えられます。装備中の称号パッシブが冒険を少し助けます。"
               : "メニュー整理のため折りたたみ中です。現在の称号と獲得数だけ表示しています。"}
           </p>
         </div>
@@ -3696,6 +3755,11 @@ function TitleCollectionPanel({ titles, activeTitleId, onSelectTitle }) {
                 <span className="title-card__state">{title.unlocked ? active ? "装備中" : "獲得済み" : "未獲得"}</span>
                 <strong>{title.unlocked ? title.name : "？？？"}</strong>
                 <small>{title.description}</small>
+                {title.passive?.type !== "none" && (
+                  <small className="title-card__passive">
+                    パッシブ：{describePassive(title.passive)}
+                  </small>
+                )}
               </button>
             );
           })}
