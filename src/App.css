@@ -2264,14 +2264,17 @@
 
 /* LvUPマーキー */
 .levelup-marquee {
-  display: flex;
-  gap: 32px;
   overflow: hidden;
-  white-space: nowrap;
-  padding: 8px 0;
+  padding: 8px 12px;
   margin-bottom: 12px;
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.18), rgba(251, 191, 36, 0.08));
   border-radius: 8px;
+}
+
+.levelup-marquee__track {
+  display: flex;
+  gap: 32px;
+  white-space: nowrap;
   animation: marquee-scroll 6s linear infinite;
 }
 
@@ -2284,14 +2287,17 @@
 
 /* 称号解放マーキー */
 .title-unlock-marquee {
-  display: flex;
-  gap: 32px;
   overflow: hidden;
-  white-space: nowrap;
-  padding: 8px 0;
+  padding: 8px 12px;
   margin-bottom: 12px;
   background: linear-gradient(90deg, rgba(168, 85, 247, 0.18), rgba(168, 85, 247, 0.08));
   border-radius: 8px;
+}
+
+.title-unlock-marquee__track {
+  display: flex;
+  gap: 32px;
+  white-space: nowrap;
   animation: marquee-scroll 7s linear infinite;
 }
 

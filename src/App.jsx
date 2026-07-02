@@ -2416,9 +2416,11 @@ export default function App() {
           {resultType === "levelup" && (
             <>
               <div className="levelup-marquee" aria-hidden="true">
-                {[...LEVEL_UP_MARQUEE, ...LEVEL_UP_MARQUEE].map((text, i) => (
-                  <span key={i}>{text}</span>
-                ))}
+                <div className="levelup-marquee__track">
+                  {[...LEVEL_UP_MARQUEE, ...LEVEL_UP_MARQUEE].map((text, i) => (
+                    <span key={i}>{text}</span>
+                  ))}
+                </div>
               </div>
               <h2 style={{ color: "#fbbf24", margin: "0 0 10px 0" }}>🌟 LEVEL UP！🌟</h2>
               <p style={{ color: "#e0e7ff", fontWeight: "bold" }}>
@@ -2482,9 +2484,11 @@ export default function App() {
           {recentTitleUnlocks.length > 0 && (
             <>
               <div className="title-unlock-marquee" aria-hidden="true">
-                {TITLE_UNLOCK_MARQUEE.concat(recentTitleUnlocks.map((title) => title.name)).map((text, i) => (
-                  <span key={i}>{text}</span>
-                ))}
+                <div className="title-unlock-marquee__track">
+                  {TITLE_UNLOCK_MARQUEE.concat(recentTitleUnlocks.map((title) => title.name)).map((text, i) => (
+                    <span key={i}>{text}</span>
+                  ))}
+                </div>
               </div>
               <div
                 style={{
