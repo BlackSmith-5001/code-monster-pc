@@ -1288,6 +1288,7 @@ export default function App() {
   const [assistChargeMode, setAssistChargeMode] = useState(false);
   const [assistChargeCount, setAssistChargeCount] = useState(0);
   const [assistChargeFull, setAssistChargeFull] = useState(false);
+  const [pendingVictory, setPendingVictory] = useState(false);
   const [assistActive, setAssistActive] = useState(false);
   const [assistDisplayCompanion, setAssistDisplayCompanion] = useState(null);
   const [shieldFromAssist, setShieldFromAssist] = useState(false);
@@ -1320,6 +1321,7 @@ export default function App() {
   const resultSoundSeqRef = useRef(0);
   const journeyTimerRef = useRef(null);
   const postEvolutionActionRef = useRef(null);
+  const pendingVictoryActionRef = useRef(null);
 
   const stage = LEVELS[selectedLevel];
   const playerLevelInfo = getLevelInfoFromExp(save.exp);
@@ -1589,17 +1591,26 @@ export default function App() {
 
       if (e.code === "Enter" && assistChargeFull) {
         e.preventDefault();
+        const pendingAction = pendingVictoryActionRef.current;
+        pendingVictoryActionRef.current = null;
         setAssistChargeMode(false);
         setAssistChargeFull(false);
         setAssistChargeCount(0);
         triggerAssist(companion, combo);
-        startTimerAgain();
+        if (pendingVictory && pendingAction) {
+          setPendingVictory(false);
+          setTimeout(() => {
+            pendingAction();
+          }, 2200);
+        } else {
+          startTimerAgain();
+        }
       }
     }
 
     document.addEventListener("keydown", handleChargeKey);
     return () => document.removeEventListener("keydown", handleChargeKey);
-  }, [assistChargeMode, assistChargeFull, companion, combo]);
+  }, [assistChargeMode, assistChargeFull, pendingVictory, companion, combo]);
 
   function focusInput() {
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -1986,6 +1997,8 @@ export default function App() {
     setAssistChargeMode(false);
     setAssistChargeCount(0);
     setAssistChargeFull(false);
+    setPendingVictory(false);
+    pendingVictoryActionRef.current = null;
     setAssistActive(false);
     setAssistDisplayCompanion(null);
     setShieldFromAssist(false);
@@ -2091,10 +2104,14 @@ export default function App() {
     return true;
   }
 
+  function getAssistGaugeGain(nextCombo) {
+    return 15 + Math.min(nextCombo * 2, 20);
+  }
+
   function gainAssistGauge(activeCompanion, nextCombo, canOpenCharge = true) {
     if (!activeCompanion) return false;
 
-    const gaugeGain = 15 + Math.min(nextCombo * 2, 20);
+    const gaugeGain = getAssistGaugeGain(nextCombo);
     const nextGauge = assistGauge + gaugeGain;
 
     if (nextGauge >= 100) {
@@ -2232,6 +2249,9 @@ export default function App() {
       setEffectTimeBonus(0);
     }
     setLastDamageDealt(damage);
+    const shouldDelayVictoryForAssist = nextEnemyHp <= 0
+      && companion
+      && assistGauge + getAssistGaugeGain(nextCombo) >= 100;
     const assistChargeStarted = gainAssistGauge(companion, nextCombo, nextEnemyHp > 0 && !wasReview);
     setFlash(isCritical ? "critical" : "ok");
     playSound(isCritical ? "critical" : "ok", soundEnabled);
@@ -2289,53 +2309,64 @@ export default function App() {
         return applyTitleUnlocks(prev, nextSave);
       });
 
-      setQuestionCount(nextCompletedCount);
-      setReviewMode(false);
+      const continueVictoryResult = () => {
+        setQuestionCount(nextCompletedCount);
+        setReviewMode(false);
 
-      const defeatMessage = selectedMode === "debug"
-        ? `🐞✨ バグ浄化！「${getDebugChallenge(current).bugName}」を修復して ${enemy.name} を討伐！ ${gainedExp}EXP獲得！ ${
-            shouldLevelUp ? "魔術師レベルアップ！" : "デバッグ筋が育った！"
-          }`
-        : `${enemy.name}を討伐！ ${gainedExp}EXP獲得！ ${
-            shouldLevelUp ? "魔術師レベルアップ！" : "いい詠唱だった！"
-          }`;
+        const defeatMessage = selectedMode === "debug"
+          ? `🐞✨ バグ浄化！「${getDebugChallenge(current).bugName}」を修復して ${enemy.name} を討伐！ ${gainedExp}EXP獲得！ ${
+              shouldLevelUp ? "魔術師レベルアップ！" : "デバッグ筋が育った！"
+            }`
+          : `${enemy.name}を討伐！ ${gainedExp}EXP獲得！ ${
+              shouldLevelUp ? "魔術師レベルアップ！" : "いい詠唱だった！"
+            }`;
 
-      const DEFEAT_COMMENT_DELAY = 3200;
+        const DEFEAT_COMMENT_DELAY = 3200;
 
-      if (didStageClear) {
-        finishStageClear(
-          `${defeatMessage} そして ${REQUIRED_QUESTIONS_PER_STAGE}問達成！ ${LEVELS[selectedLevel].stageName} クリア！`,
-          shouldLevelUp,
-          DEFEAT_COMMENT_DELAY
-        );
+        if (didStageClear) {
+          finishStageClear(
+            `${defeatMessage} そして ${REQUIRED_QUESTIONS_PER_STAGE}問達成！ ${LEVELS[selectedLevel].stageName} クリア！`,
+            shouldLevelUp,
+            DEFEAT_COMMENT_DELAY
+          );
+          return;
+        }
+
+        setBattleLog(defeatMessage);
+
+        const FADE_DURATION = 500;
+        setTimeout(() => setScreenFade("out"), DEFEAT_COMMENT_DELAY - FADE_DURATION);
+
+        setTimeout(async () => {
+          const soundSeq = resultSoundSeqRef.current + 1;
+          resultSoundSeqRef.current = soundSeq;
+
+          stopBgm();
+          stopActiveSounds();
+          setFlash(null);
+
+          setScreenFade("in");
+          setFinished(true);
+          setResultType(shouldLevelUp ? "levelup" : "victory");
+
+          await playSoundAndWait("victory", soundEnabled);
+
+          if (soundSeq !== resultSoundSeqRef.current) return;
+
+          if (shouldLevelUp) {
+            await playSoundAndWait("levelup", soundEnabled);
+          }
+        }, DEFEAT_COMMENT_DELAY);
+      };
+
+      if (shouldDelayVictoryForAssist && companion) {
+        pendingVictoryActionRef.current = continueVictoryResult;
+        setPendingVictory(true);
+        openAssistCharge(companion);
         return;
       }
 
-      setBattleLog(defeatMessage);
-
-      const FADE_DURATION = 500;
-      setTimeout(() => setScreenFade("out"), DEFEAT_COMMENT_DELAY - FADE_DURATION);
-
-      setTimeout(async () => {
-        const soundSeq = resultSoundSeqRef.current + 1;
-        resultSoundSeqRef.current = soundSeq;
-
-        stopBgm();
-        stopActiveSounds();
-        setFlash(null);
-
-        setScreenFade("in");
-        setFinished(true);
-        setResultType(shouldLevelUp ? "levelup" : "victory");
-
-        await playSoundAndWait("victory", soundEnabled);
-
-        if (soundSeq !== resultSoundSeqRef.current) return;
-
-        if (shouldLevelUp) {
-          await playSoundAndWait("levelup", soundEnabled);
-        }
-      }, DEFEAT_COMMENT_DELAY);
+      continueVictoryResult();
 
       return;
     }
@@ -2944,22 +2975,24 @@ export default function App() {
           )}
 
           {assistActive && (assistDisplayCompanion || companion) && (
-            <div className="assist-cutin-overlay">
+            <div className="assist-active-overlay">
               {(assistDisplayCompanion || companion).image ? (
                 <img
                   src={(assistDisplayCompanion || companion).image}
                   alt={(assistDisplayCompanion || companion).name}
-                  className="assist-cutin-monster"
+                  className="assist-active-monster"
                 />
               ) : (
-                <div className="assist-cutin-monster assist-cutin-monster--emoji">
+                <div className="assist-active-monster assist-active-monster--emoji">
                   {(assistDisplayCompanion || companion).icon || (assistDisplayCompanion || companion).sprite || "✨"}
                 </div>
               )}
-              <div className="assist-cutin-skill">
-                <span className="assist-cutin-name">{(assistDisplayCompanion || companion).name}</span>
-                <span className="assist-cutin-effect">✨ {(assistDisplayCompanion || companion).assistSkill.name}</span>
-              </div>
+              <p className="assist-active-skill-name">
+                💥 {(assistDisplayCompanion || companion).assistSkill.name}
+              </p>
+              <p className="assist-active-skill-effect">
+                {(assistDisplayCompanion || companion).assistSkill.effect}
+              </p>
             </div>
           )}
 
@@ -3346,7 +3379,14 @@ export default function App() {
           {keyHints.length > 0 && (
             <div className="key-hint-panel">
               {keyHints.map(({ symbol, hint }) => (
-                <span key={symbol} className="key-hint-badge">{hint}</span>
+                <span key={symbol} className="key-hint-badge">
+                  {symbol === "_" ? (
+                    <>
+                      <span className="key-hint-symbol key-hint-symbol--underscore">_</span>
+                      {" → Shift + ろ"}
+                    </>
+                  ) : hint}
+                </span>
               ))}
             </div>
           )}
@@ -3709,9 +3749,9 @@ function EvolutionScreen({ evolution, phase, onComplete }) {
             key={`${comment}-${index}`}
             className="niconico-comment"
             style={{
-              top: `${10 + (index % 7) * 12}%`,
-              animationDelay: `${index * 0.35}s`,
-              fontSize: index < 3 ? "22px" : "16px",
+              top: `${12 + (index % 5) * 13}%`,
+              animationDelay: `${index * 0.18}s`,
+              fontSize: index < 4 ? "30px" : "22px",
             }}
           >
             {comment}
