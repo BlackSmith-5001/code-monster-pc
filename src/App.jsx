@@ -1322,6 +1322,9 @@ export default function App() {
   const journeyTimerRef = useRef(null);
   const postEvolutionActionRef = useRef(null);
   const pendingVictoryActionRef = useRef(null);
+  const isComposingRef = useRef(false);
+  const zenkakuWarningShownRef = useRef(false);
+  const typingWrongMessageShownRef = useRef(false);
 
   const stage = LEVELS[selectedLevel];
   const playerLevelInfo = getLevelInfoFromExp(save.exp);
@@ -1453,15 +1456,21 @@ export default function App() {
 
   useEffect(() => {
     setDebugHintOpen(false);
-  }, [current?.id, selectedMode]);
+    zenkakuWarningShownRef.current = false;
+    typingWrongMessageShownRef.current = false;
+  }, [current?.id, questionCount, enemy?.id, selectedMode]);
 
   const prevIsTypingWrongRef = useRef(false);
   useEffect(() => {
     if (isTypingWrong && !prevIsTypingWrongRef.current && isBattle) {
       triggerMonsterComment(enemy, "wrong");
+      if (!typingWrongMessageShownRef.current) {
+        setBattleLog("🔙 赤くなったところまでバックスペースで戻って直そう。Escで全消しもできるよ。");
+        typingWrongMessageShownRef.current = true;
+      }
     }
     prevIsTypingWrongRef.current = isTypingWrong;
-  }, [isTypingWrong]);
+  }, [isTypingWrong, isBattle, enemy]);
 
   useEffect(() => {
     if (debugDungeonUnlocked || selectedMode !== "debug") return;
@@ -2200,8 +2209,21 @@ export default function App() {
     if (assistChargeMode) return;
     if (effectChanceActive) return;
     if (pendingCorrect) return;
+    if (isComposingRef.current) return;
 
     const val = e.target.value;
+
+    if (!zenkakuWarningShownRef.current && val.length > typed.length) {
+      const added = val.slice(typed.length);
+      if (/[^\x20-\x7E]/.test(added)) {
+        setBattleLog(
+          "⚠️ 全角文字が入ったよ！ キーボード左上の「半角/全角」キーを押して、半角英数モードに切り替えよう。"
+        );
+        zenkakuWarningShownRef.current = true;
+        return;
+      }
+    }
+
     setTyped(val);
 
     if (val === answerCode) {
@@ -2421,16 +2443,19 @@ export default function App() {
   }
 
   function handleKeyDown(e) {
-    if (e.key === "Enter" && pendingCorrect) {
-      e.preventDefault();
-      resolveCorrectAnswer();
+    if (e.key === "Enter") {
+      if (pendingCorrect) {
+        e.preventDefault();
+        resolveCorrectAnswer();
+      }
       return;
     }
 
-    if (e.key === "Enter" && typed !== answerCode) {
+    if (e.key === "Escape") {
+      e.preventDefault();
       setTyped("");
       setBattleLog(
-        "入力をリセットした！Enterは『今の詠唱をいったん消す』ボタンとして使えるよ。"
+        "入力をリセットした！Escは『今の詠唱をいったん消す』ボタンとして使えるよ。"
       );
     }
   }
@@ -3354,6 +3379,8 @@ export default function App() {
             value={typed}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            onCompositionStart={() => { isComposingRef.current = true; }}
+            onCompositionEnd={() => { isComposingRef.current = false; }}
             readOnly={pendingCorrect}
             style={{
               width: "100%",
@@ -3368,6 +3395,10 @@ export default function App() {
             }}
             placeholder="呪文を入力。半角スペースとクォートに注意！"
             autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="text"
           />
 
           {pendingCorrect && (

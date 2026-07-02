@@ -9,6 +9,7 @@ export {
   RARITY_COLORS,
   getMonsterBookEntries,
   getMonsterInfo,
+  isObtainableMonster,
 } from "./enemies";
 export {
   BUG_LIBRARY,
