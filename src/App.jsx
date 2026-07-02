@@ -18,6 +18,7 @@ import { Gauge, MonsterPortrait, StatusCard } from "./components/BattleWidgets";
 const SAVE_KEY = "typeOfLegendSave";
 const REQUIRED_QUESTIONS_PER_STAGE = 10;
 const DEBUG_UNLOCK_LEVEL = 5;
+const ASSIST_CHARGE_MAX = 40;
 const RARITY_GLOW = {
   common: "rgba(148, 163, 184, 0.28)",
   uncommon: "rgba(52, 211, 153, 0.32)",
@@ -1284,6 +1285,9 @@ export default function App() {
   const [questionsSinceEffect, setQuestionsSinceEffect] = useState(0);
   const [nextEffectAt, setNextEffectAt] = useState(() => getNextEffectChanceAt());
   const [assistGauge, setAssistGauge] = useState(0);
+  const [assistChargeMode, setAssistChargeMode] = useState(false);
+  const [assistChargeCount, setAssistChargeCount] = useState(0);
+  const [assistChargeFull, setAssistChargeFull] = useState(false);
   const [assistActive, setAssistActive] = useState(false);
   const [assistDisplayCompanion, setAssistDisplayCompanion] = useState(null);
   const [shieldFromAssist, setShieldFromAssist] = useState(false);
@@ -1525,7 +1529,7 @@ export default function App() {
   }, [soundEnabled]);
 
   useEffect(() => {
-    if (!started || finished || journey) return;
+    if (!started || finished || journey || assistChargeMode) return;
 
     clearInterval(timerRef.current);
 
@@ -1542,7 +1546,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [started, finished, journey, roundId, TIME_LIMIT]);
+  }, [started, finished, journey, assistChargeMode, roundId, TIME_LIMIT]);
 
   useEffect(() => {
     if (!soundEnabled) {
@@ -1567,6 +1571,35 @@ export default function App() {
 
     return () => clearTimeout(timer);
   }, [showEvolutionScreen, evolutionPhase]);
+
+  useEffect(() => {
+    if (!assistChargeMode) return undefined;
+
+    function handleChargeKey(e) {
+      if (e.code === "Space") {
+        e.preventDefault();
+        setAssistChargeCount((count) => {
+          const next = Math.min(ASSIST_CHARGE_MAX, count + 1);
+          if (next >= ASSIST_CHARGE_MAX) {
+            setAssistChargeFull(true);
+          }
+          return next;
+        });
+      }
+
+      if (e.code === "Enter" && assistChargeFull) {
+        e.preventDefault();
+        setAssistChargeMode(false);
+        setAssistChargeFull(false);
+        setAssistChargeCount(0);
+        triggerAssist(companion, combo);
+        startTimerAgain();
+      }
+    }
+
+    document.addEventListener("keydown", handleChargeKey);
+    return () => document.removeEventListener("keydown", handleChargeKey);
+  }, [assistChargeMode, assistChargeFull, companion, combo]);
 
   function focusInput() {
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -1950,6 +1983,9 @@ export default function App() {
 
   function resetAssistState() {
     setAssistGauge(0);
+    setAssistChargeMode(false);
+    setAssistChargeCount(0);
+    setAssistChargeFull(false);
     setAssistActive(false);
     setAssistDisplayCompanion(null);
     setShieldFromAssist(false);
@@ -2042,19 +2078,36 @@ export default function App() {
     }, 2200);
   }
 
-  function gainAssistGauge(activeCompanion, nextCombo) {
-    if (!activeCompanion) return;
+  function openAssistCharge(activeCompanion) {
+    if (!activeCompanion?.assistSkill) return false;
+
+    clearInterval(timerRef.current);
+    setAssistChargeMode(true);
+    setAssistChargeCount(0);
+    setAssistChargeFull(false);
+    setAssistGauge(0);
+    setBattleLog(`🤝 ${activeCompanion.name}の力が満ちた！スペース長押しでチャージしよう。`);
+    playSound("levelup", soundEnabled);
+    return true;
+  }
+
+  function gainAssistGauge(activeCompanion, nextCombo, canOpenCharge = true) {
+    if (!activeCompanion) return false;
 
     const gaugeGain = 15 + Math.min(nextCombo * 2, 20);
     const nextGauge = assistGauge + gaugeGain;
 
     if (nextGauge >= 100) {
-      setAssistGauge(0);
-      triggerAssist(activeCompanion, nextCombo);
-      return;
+      if (canOpenCharge) {
+        return openAssistCharge(activeCompanion);
+      }
+
+      setAssistGauge(100);
+      return false;
     }
 
     setAssistGauge(nextGauge);
+    return false;
   }
 
   function handleTimeUp() {
@@ -2127,6 +2180,7 @@ export default function App() {
 
   function handleChange(e) {
     if (!started || finished || !current || !enemy) return;
+    if (assistChargeMode) return;
     if (effectChanceActive) return;
     if (pendingCorrect) return;
 
@@ -2178,7 +2232,7 @@ export default function App() {
       setEffectTimeBonus(0);
     }
     setLastDamageDealt(damage);
-    gainAssistGauge(companion, nextCombo);
+    const assistChargeStarted = gainAssistGauge(companion, nextCombo, nextEnemyHp > 0 && !wasReview);
     setFlash(isCritical ? "critical" : "ok");
     playSound(isCritical ? "critical" : "ok", soundEnabled);
 
@@ -2297,7 +2351,9 @@ export default function App() {
 
       setTimeout(() => {
         setFlash(null);
-        startTimerAgain();
+        if (!assistChargeStarted) {
+          startTimerAgain();
+        }
       }, 350);
 
       return;
@@ -2904,6 +2960,31 @@ export default function App() {
                 <span className="assist-cutin-name">{(assistDisplayCompanion || companion).name}</span>
                 <span className="assist-cutin-effect">✨ {(assistDisplayCompanion || companion).assistSkill.name}</span>
               </div>
+            </div>
+          )}
+
+          {assistChargeMode && companion && (
+            <div className="assist-charge-overlay">
+              <div className="assist-charge-monster">
+                {companion.image ? (
+                  <img src={companion.image} alt={companion.name} />
+                ) : (
+                  <span>{companion.icon || companion.sprite || "✨"}</span>
+                )}
+                <p>{companion.name}</p>
+              </div>
+
+              <p className="assist-charge-label">
+                {assistChargeFull ? "✨ エンターで発動！！" : "スペース長押し でチャージ！"}
+              </p>
+
+              <div className={`assist-charge-bar ${assistChargeFull ? "assist-charge-bar--full" : ""}`}>
+                <span>{"█".repeat(assistChargeCount)}</span>
+              </div>
+
+              <p className="assist-charge-skill">
+                💥 {companion.assistSkill.name}
+              </p>
             </div>
           )}
 

@@ -2972,6 +2972,98 @@
   margin-top: 4px;
 }
 
+.assist-charge-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background:
+    radial-gradient(circle at center, rgba(124, 58, 237, 0.26), transparent 46%),
+    rgba(0, 0, 0, 0.75);
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease;
+}
+
+.assist-charge-monster {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.assist-charge-monster img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  animation: pulse 0.8s ease infinite;
+  filter: drop-shadow(0 0 28px rgba(250, 204, 21, 0.62));
+}
+
+.assist-charge-monster span {
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  font-size: 4rem;
+  animation: pulse 0.8s ease infinite;
+  filter: drop-shadow(0 0 24px rgba(250, 204, 21, 0.6));
+}
+
+.assist-charge-monster p {
+  margin: 0;
+  color: #fef3c7;
+  font-size: 1.15rem;
+  font-weight: 1000;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.6);
+}
+
+.assist-charge-label {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #facc15;
+  text-align: center;
+  text-shadow: 0 0 20px rgba(250, 204, 21, 0.72);
+}
+
+.assist-charge-bar {
+  width: min(86vw, 420px);
+  min-width: min(300px, 86vw);
+  height: 32px;
+  background: #1a1a2e;
+  border: 2px solid #a78bfa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 1rem;
+  color: #a78bfa;
+  letter-spacing: 2px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  box-shadow: 0 0 24px rgba(167, 139, 250, 0.28);
+}
+
+.assist-charge-bar--full {
+  border-color: #facc15;
+  color: #facc15;
+  animation: blink 0.3s ease infinite;
+  box-shadow: 0 0 32px rgba(250, 204, 21, 0.42);
+}
+
+.assist-charge-skill {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #e2e8f0;
+  font-weight: 900;
+  text-align: center;
+}
+
 @keyframes cutinSlide {
   0% {
     transform: translateX(-200px) scale(0.8);
@@ -3202,6 +3294,21 @@
 @keyframes effectIntroFadeIn {
   from { opacity: 0; transform: scale(0.94); }
   to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 @keyframes shake {
