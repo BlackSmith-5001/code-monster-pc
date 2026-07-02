@@ -46,6 +46,69 @@ const ADVENTURE_TIPS = [
   "Lv.3では数値計算、Lv.4では条件分岐が中心になります。",
 ];
 
+const EFFECT_QUESTIONS = [
+  {
+    id: "eq_hp_heal",
+    code: "hp = 100",
+    hint: "変数hpに100を代入",
+    effect: { type: "healPlayer", value: 20 },
+    effectLabel: "HP +20 回復！",
+    comments: ["回復だ！", "HP満タン！", "ナイスコード！", "いやされる～", "hp=100最強"],
+  },
+  {
+    id: "eq_double_attack",
+    code: "attack = attack * 2",
+    hint: "攻撃力を2倍にする",
+    effect: { type: "doubleDamage", value: 2 },
+    effectLabel: "次のダメージ×2！",
+    comments: ["2倍！！", "パワーアップ！", "やばい強い", "コード is 力", "ダブルアタック"],
+  },
+  {
+    id: "eq_bonus_time",
+    code: "time = time + 10",
+    hint: "制限時間に10秒追加",
+    effect: { type: "bonusTime", value: 10 },
+    effectLabel: "次の問題の時間 +10秒！",
+    comments: ["時間GET！", "余裕よ余裕", "+10秒！！", "タイムボーナス", "ゆっくりできる"],
+  },
+  {
+    id: "eq_shield",
+    code: "shield = 1",
+    hint: "シールドに1を代入",
+    effect: { type: "shield", value: 1 },
+    effectLabel: "次の被ダメージ無効！",
+    comments: ["無敵！！", "シールド発動", "ガード確定", "1でON！", "鉄壁キター！"],
+  },
+  {
+    id: "eq_combo_boost",
+    code: "combo = combo + 1",
+    hint: "コンボカウンターを増やす",
+    effect: { type: "comboBoost", value: 1 },
+    effectLabel: "コンボ +1ボーナス！",
+    comments: ["コンボ加算！", "連続攻撃！", "止まらない", "コンボisパワー", "繋がった！"],
+  },
+  {
+    id: "eq_exp_up",
+    code: "exp = exp * 1.5",
+    hint: "経験値を1.5倍にする",
+    effect: { type: "expBonus", value: 50 },
+    effectLabel: "このステージEXP×1.5！",
+    comments: ["経験値ボーナス！", "成長速い！", "レベルアップ近い", "EXP増量中", "うまうま"],
+  },
+  {
+    id: "eq_heal_small",
+    code: "hp = hp + 30",
+    hint: "HPを30増やす",
+    effect: { type: "healPlayer", value: 30 },
+    effectLabel: "HP +30 回復！",
+    comments: ["30回復！", "まだまだいける", "回復薬効いた", "HP補充完了", "もりもり回復"],
+  },
+];
+
+function getNextEffectChanceAt() {
+  return Math.floor(Math.random() * 3) + 3;
+}
+
 const DEBUG_TUTORIAL_STEPS = [
   {
     kind: "intro",
@@ -1048,6 +1111,18 @@ export default function App() {
   const [combo, setCombo] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
   const [reviewMode, setReviewMode] = useState(false);
+  const [effectChanceActive, setEffectChanceActive] = useState(false);
+  const [currentEffectQuestion, setCurrentEffectQuestion] = useState(null);
+  const [effectTyped, setEffectTyped] = useState("");
+  const [pendingEffectResume, setPendingEffectResume] = useState(null);
+  const [shieldActive, setShieldActive] = useState(false);
+  const [damageMultiplier, setDamageMultiplier] = useState(1);
+  const [expBonusMultiplier, setExpBonusMultiplier] = useState(1);
+  const [effectTimeBonus, setEffectTimeBonus] = useState(0);
+  const [effectComments, setEffectComments] = useState([]);
+  const [showEffectChanceBanner, setShowEffectChanceBanner] = useState(false);
+  const [questionsSinceEffect, setQuestionsSinceEffect] = useState(0);
+  const [nextEffectAt, setNextEffectAt] = useState(() => getNextEffectChanceAt());
 
   const [soundEnabled, setSoundEnabled] = useState(() => save.soundEnabled);
   const [flash, setFlash] = useState(null);
@@ -1078,7 +1153,7 @@ export default function App() {
   const activeTitle = getActiveTitle(save, playerLevelInfo.playerLevel);
   const activePassive = activeTitle.passive || { type: "none", value: 0 };
   const timeBonus = activePassive.type === "timeBonus" ? activePassive.value : 0;
-  const TIME_LIMIT = (selectedMode === "debug" ? stage.timeLimit + 25 : stage.timeLimit) + timeBonus;
+  const TIME_LIMIT = (selectedMode === "debug" ? stage.timeLimit + 25 : stage.timeLimit) + timeBonus + effectTimeBonus;
   const remaining = Math.max(0, TIME_LIMIT - elapsed);
   const playerTitle = activeTitle.name;
   const recommendedStage = getRecommendedStage(playerLevelInfo.playerLevel);
@@ -1309,6 +1384,21 @@ export default function App() {
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
+  function resetEffectChanceState() {
+    setEffectChanceActive(false);
+    setCurrentEffectQuestion(null);
+    setEffectTyped("");
+    setPendingEffectResume(null);
+    setShieldActive(false);
+    setDamageMultiplier(1);
+    setExpBonusMultiplier(1);
+    setEffectTimeBonus(0);
+    setEffectComments([]);
+    setShowEffectChanceBanner(false);
+    setQuestionsSinceEffect(0);
+    setNextEffectAt(getNextEffectChanceAt());
+  }
+
   function startTimerAgain() {
     setElapsed(0);
     setRoundId((r) => r + 1);
@@ -1406,6 +1496,7 @@ export default function App() {
     setTyped("");
     setElapsed(0);
     setReviewMode(false);
+    resetEffectChanceState();
     setStarted(true);
     setFinished(false);
     setResultType(null);
@@ -1438,6 +1529,7 @@ export default function App() {
     setResultType(null);
     setRecentTitleUnlocks([]);
     setReviewMode(false);
+    resetEffectChanceState();
     setBattleLog("街へ帰還した。勇気ある撤退もまた立派なデバッグ。");
   }
 
@@ -1496,6 +1588,146 @@ export default function App() {
     setMonsterComment({ text: data[eventType], icon: enemyObj.icon || enemyObj.sprite || "🐉", key: Date.now(), top, eventType });
   }
 
+  function canUseEffectChance() {
+    return (save.clearedLevels || []).includes(selectedLevel);
+  }
+
+  function openEffectChance(resumeAction) {
+    const randomEffect = EFFECT_QUESTIONS[Math.floor(Math.random() * EFFECT_QUESTIONS.length)];
+
+    clearInterval(timerRef.current);
+    setCurrentEffectQuestion(randomEffect);
+    setPendingEffectResume(resumeAction);
+    setEffectChanceActive(true);
+    setEffectTyped("");
+    setShowEffectChanceBanner(true);
+    setQuestionsSinceEffect(0);
+    setNextEffectAt(getNextEffectChanceAt());
+    setTyped("");
+    setBattleLog(`⚡ タイピング効果チャンス！「${randomEffect.code}」を唱えると ${randomEffect.effectLabel}`);
+    playSound("critical", soundEnabled);
+
+    setTimeout(() => setShowEffectChanceBanner(false), 1800);
+  }
+
+  function maybeOpenEffectChance(resumeAction, options = {}) {
+    if (!canUseEffectChance() || effectChanceActive || (!options.allowReview && reviewMode)) {
+      return false;
+    }
+
+    if (questionsSinceEffect + 1 < nextEffectAt) {
+      setQuestionsSinceEffect((count) => count + 1);
+      return false;
+    }
+
+    openEffectChance(resumeAction);
+    return true;
+  }
+
+  function moveToNextQuestion(nextQuestionCount, message) {
+    const nextEncounter = getEncounterFromDeck(encounterDeck, nextQuestionCount, selectedLevel);
+
+    setCurrent(nextEncounter.question);
+    setBattleLog(message);
+
+    setTimeout(() => {
+      setFlash(null);
+      startTimerAgain();
+    }, 350);
+  }
+
+  function beginJourneyToNext(nextQuestionCount) {
+    const totalQuestions = REQUIRED_QUESTIONS_PER_STAGE;
+    const nextQuestionNumber = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
+
+    setJourney({
+      mode: selectedMode,
+      stageLabel: LEVELS[selectedLevel].label,
+      stageName: LEVELS[selectedLevel].stageName,
+      questionNumber: nextQuestionNumber,
+      totalQuestions,
+      poolTotal: getQuestionCountForLevel(selectedLevel),
+      completedQuestions: Math.min(questionCount, REQUIRED_QUESTIONS_PER_STAGE),
+      tip: ADVENTURE_TIPS[nextQuestionCount % ADVENTURE_TIPS.length],
+      message:
+        selectedMode === "debug"
+          ? "次のバグ憑き呪文へ移動中……"
+          : "次のコードモンスターを探して移動中……",
+    });
+
+    journeyTimerRef.current = setTimeout(() => {
+      startNextBattle(nextQuestionCount);
+    }, 3200);
+  }
+
+  function resumeAfterEffect(resumeAction) {
+    setPendingEffectResume(null);
+    setEffectChanceActive(false);
+    setCurrentEffectQuestion(null);
+    setEffectTyped("");
+
+    if (!resumeAction) {
+      setEffectTimeBonus(0);
+      startTimerAgain();
+      return;
+    }
+
+    if (resumeAction.type === "nextQuestion") {
+      moveToNextQuestion(resumeAction.nextQuestionCount, resumeAction.message);
+      return;
+    }
+
+    if (resumeAction.type === "journey") {
+      beginJourneyToNext(resumeAction.nextQuestionCount);
+    }
+  }
+
+  function handleEffectQuestionCorrect() {
+    const eq = currentEffectQuestion;
+    if (!eq) return;
+
+    if (eq.effect.type === "healPlayer") {
+      setPlayerHp((hp) => Math.min(100, hp + eq.effect.value));
+    } else if (eq.effect.type === "doubleDamage") {
+      setDamageMultiplier(eq.effect.value);
+    } else if (eq.effect.type === "shield") {
+      setShieldActive(true);
+    } else if (eq.effect.type === "comboBoost") {
+      setCombo((currentCombo) => currentCombo + eq.effect.value);
+    } else if (eq.effect.type === "bonusTime") {
+      setEffectTimeBonus((bonus) => bonus + eq.effect.value);
+    } else if (eq.effect.type === "expBonus") {
+      setExpBonusMultiplier(eq.effect.value / 100 + 1);
+    }
+
+    const comments = eq.comments.map((text, index) => ({
+      text,
+      key: `${eq.id}-${Date.now()}-${index}`,
+    }));
+    const resumeAction = pendingEffectResume;
+    setEffectComments(comments);
+    setTimeout(() => setEffectComments([]), 3000);
+    setBattleLog(`⚡ ${eq.code} → ${eq.effectLabel}`);
+    playSound("ok", soundEnabled);
+
+    setTimeout(() => resumeAfterEffect(resumeAction), 650);
+  }
+
+  function handleEffectInputChange(event) {
+    const value = event.target.value;
+    setEffectTyped(value);
+
+    if (currentEffectQuestion && value === currentEffectQuestion.code) {
+      handleEffectQuestionCorrect();
+    }
+  }
+
+  function skipEffectChance() {
+    const resumeAction = pendingEffectResume;
+    setBattleLog("効果チャンスをスキップした。次の呪文へ進もう。");
+    resumeAfterEffect(resumeAction);
+  }
+
   function applyTitleUnlocks(prevSave, nextSave, options = {}) {
     const nextPlayerLevel = getLevelInfoFromExp(nextSave.exp).playerLevel;
     const newlyUnlocked = getNewlyUnlockedTitles(prevSave, nextSave, nextPlayerLevel);
@@ -1522,11 +1754,29 @@ export default function App() {
   }
 
   function handleTimeUp() {
+    if (shieldActive) {
+      setShieldActive(false);
+      setCombo(0);
+      setReviewMode(false);
+      setFlash("ok");
+      playSound("ok", soundEnabled);
+      setBattleLog("🛡️ シールド発動！ 今回の被ダメージを無効化した。もう一度落ち着いて唱えよう。");
+      setTimeout(() => {
+        setFlash(null);
+        setEffectTimeBonus(0);
+        startTimerAgain();
+      }, 350);
+      return;
+    }
+
     const damage = reviewMode ? 24 + selectedLevel * 5 : 18 + selectedLevel * 5;
     const nextHp = Math.max(0, playerHp - damage);
 
     setPlayerHp(nextHp);
     setCombo(0);
+    if (effectTimeBonus > 0) {
+      setEffectTimeBonus(0);
+    }
     setReviewMode(false);
     setFlash("ng");
     playSound("ng", soundEnabled);
@@ -1547,6 +1797,7 @@ export default function App() {
 
   function handleChange(e) {
     if (!started || finished || !current || !enemy) return;
+    if (effectChanceActive) return;
 
     const val = e.target.value;
     setTyped(val);
@@ -1558,13 +1809,16 @@ export default function App() {
     const wasReview = reviewMode;
     const isCritical = remaining >= Math.ceil(TIME_LIMIT * 0.6) || combo >= 2;
     const baseDamage = wasReview ? 50 + selectedLevel * 10 : 40 + selectedLevel * 8;
-    const damage = applyTitleDamageBonus(isCritical ? baseDamage + 20 : baseDamage, combo + 1, activePassive);
+    const titleDamage = applyTitleDamageBonus(isCritical ? baseDamage + 20 : baseDamage, combo + 1, activePassive);
+    const damage = Math.round(titleDamage * damageMultiplier);
     const nextEnemyHp = Math.max(0, enemy.hp - damage);
     const nextCombo = combo + 1;
 
-    const gainedCastExp = applyTitleExpBonus(
-      (wasReview ? 8 : 5) + (selectedMode === "debug" ? 3 : 0),
-      activePassive
+    const gainedCastExp = Math.round(
+      applyTitleExpBonus(
+        (wasReview ? 8 : 5) + (selectedMode === "debug" ? 3 : 0),
+        activePassive
+      ) * expBonusMultiplier
     );
 
     setEnemy((prev) => ({
@@ -1573,6 +1827,12 @@ export default function App() {
     }));
 
     setCombo(nextCombo);
+    if (damageMultiplier !== 1) {
+      setDamageMultiplier(1);
+    }
+    if (effectTimeBonus > 0) {
+      setEffectTimeBonus(0);
+    }
     setFlash(isCritical ? "critical" : "ok");
     playSound(isCritical ? "critical" : "ok", soundEnabled);
 
@@ -1608,7 +1868,9 @@ export default function App() {
 
     if (nextEnemyHp <= 0) {
       const beforeLevel = getLevelInfoFromExp(save.exp).playerLevel;
-      const gainedExp = applyTitleExpBonus(enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0), activePassive);
+      const gainedExp = Math.round(
+        applyTitleExpBonus(enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0), activePassive) * expBonusMultiplier
+      );
       const afterLevel = getLevelInfoFromExp(save.exp + gainedCastExp + gainedExp)
         .playerLevel;
       const shouldLevelUp = afterLevel > beforeLevel;
@@ -1711,19 +1973,18 @@ export default function App() {
       return;
     }
 
-    const nextEncounter = getEncounterFromDeck(encounterDeck, nextQuestionCount, selectedLevel);
+    const nextMessage = selectedMode === "debug"
+      ? `🐞✨ バグ完全浄化！「${getDebugChallenge(current).bugName}」を見抜いた！ 図鑑にも記録されました。次のバグ憑き呪文へ！`
+      : "✅ 復習追撃成功！同じ呪文を2回唱えたので、記憶への定着ダメージが入りました。次の呪文へ！";
 
-    setCurrent(nextEncounter.question);
-    setBattleLog(
-      selectedMode === "debug"
-        ? `🐞✨ バグ完全浄化！「${getDebugChallenge(current).bugName}」を見抜いた！ 図鑑にも記録されました。次のバグ憑き呪文へ！`
-        : "✅ 復習追撃成功！同じ呪文を2回唱えたので、記憶への定着ダメージが入りました。次の呪文へ！"
-    );
+    if (maybeOpenEffectChance(
+      { type: "nextQuestion", nextQuestionCount, message: nextMessage },
+      { allowReview: true }
+    )) {
+      return;
+    }
 
-    setTimeout(() => {
-      setFlash(null);
-      startTimerAgain();
-    }, 350);
+    moveToNextQuestion(nextQuestionCount, nextMessage);
   }
 
   function handleKeyDown(e) {
@@ -1804,31 +2065,21 @@ export default function App() {
       return;
     }
 
-    const totalQuestions = REQUIRED_QUESTIONS_PER_STAGE;
-    const nextQuestionNumber = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
     const nextQuestionCount = questionCount;
 
     setFinished(false);
     setResultType(null);
     setRecentTitleUnlocks([]);
-    setJourney({
-      mode: selectedMode,
-      stageLabel: LEVELS[selectedLevel].label,
-      stageName: LEVELS[selectedLevel].stageName,
-      questionNumber: nextQuestionNumber,
-      totalQuestions,
-      poolTotal: getQuestionCountForLevel(selectedLevel),
-      completedQuestions: Math.min(questionCount, REQUIRED_QUESTIONS_PER_STAGE),
-      tip: ADVENTURE_TIPS[nextQuestionCount % ADVENTURE_TIPS.length],
-      message:
-        selectedMode === "debug"
-          ? "次のバグ憑き呪文へ移動中……"
-          : "次のコードモンスターを探して移動中……",
-    });
 
-    journeyTimerRef.current = setTimeout(() => {
-      startNextBattle(nextQuestionCount);
-    }, 3200);
+    if (maybeOpenEffectChance(
+      { type: "journey", nextQuestionCount },
+      { allowReview: true }
+    )) {
+      startBgm();
+      return;
+    }
+
+    beginJourneyToNext(nextQuestionCount);
   }
 
   function goTown() {
@@ -1848,6 +2099,7 @@ export default function App() {
     setRecentTitleUnlocks([]);
     setReviewMode(false);
     setEnemy(null);
+    resetEffectChanceState();
     setBattleLog("街へ帰還した。次の冒険に備えよう。");
   }
 
@@ -1881,6 +2133,7 @@ export default function App() {
     setReviewMode(false);
     setEnemy(null);
     setCurrent(null);
+    resetEffectChanceState();
     setTyped("");
     setElapsed(0);
     setBattleLog("セーブデータをリセットした。新たな冒険の始まりだ！");
@@ -2162,6 +2415,7 @@ export default function App() {
         <div
           className={largeTextMode ? "battle-card battle-card--large" : "battle-card"}
           style={{
+            position: "relative",
             width: "100%",
             maxWidth: largeTextMode ? 940 : 780,
             background: "rgba(15, 23, 42, 0.96)",
@@ -2211,6 +2465,45 @@ export default function App() {
               🏳️ 街に戻る
             </button>
           </div>
+
+          {effectChanceActive && currentEffectQuestion && (
+            <div className="effect-chance-overlay">
+              {showEffectChanceBanner && (
+                <div className="effect-chance-banner">
+                  ⚡ タイピング効果チャンス！！
+                </div>
+              )}
+              <div className="effect-chance-card">
+                <p className="effect-chance-label">{currentEffectQuestion.effectLabel}</p>
+                <p className="effect-chance-hint">{currentEffectQuestion.hint}</p>
+                <div className="effect-chance-code">{currentEffectQuestion.code}</div>
+                <input
+                  className="effect-chance-input"
+                  autoFocus
+                  value={effectTyped}
+                  placeholder={currentEffectQuestion.code}
+                  onChange={handleEffectInputChange}
+                />
+                <button type="button" className="effect-chance-skip" onClick={skipEffectChance}>
+                  スキップして次へ
+                </button>
+              </div>
+            </div>
+          )}
+
+          {effectComments.length > 0 && (
+            <div className="niconico-comments" aria-hidden="true">
+              {effectComments.map((comment, index) => (
+                <span
+                  key={comment.key}
+                  className="niconico-comment"
+                  style={{ top: `${15 + index * 14}%`, animationDelay: `${index * 0.22}s` }}
+                >
+                  {comment.text}
+                </span>
+              ))}
+            </div>
+          )}
 
           {reviewMode && (
             <div

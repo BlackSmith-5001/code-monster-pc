@@ -2219,6 +2219,124 @@
   border: 1px solid rgba(148, 163, 184, 0.28);
 }
 
+.effect-chance-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background:
+    radial-gradient(circle at top, rgba(251, 191, 36, 0.18), transparent 42%),
+    rgba(2, 6, 23, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.effect-chance-banner {
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: 1000;
+  color: #fbbf24;
+  text-shadow: 0 0 24px rgba(251, 191, 36, 0.8);
+  animation: effectBannerPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  margin-bottom: 16px;
+  letter-spacing: 0.04em;
+}
+
+.effect-chance-card {
+  width: min(440px, 100%);
+  background: rgba(15, 23, 42, 0.96);
+  border: 2px solid #fbbf24;
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+  box-shadow: 0 0 36px rgba(251, 191, 36, 0.24);
+}
+
+.effect-chance-label {
+  font-size: 20px;
+  font-weight: 1000;
+  color: #fbbf24;
+  margin: 0 0 8px;
+}
+
+.effect-chance-hint {
+  font-size: 13px;
+  color: #cbd5e1;
+  margin: 0 0 12px;
+}
+
+.effect-chance-code {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.78);
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  color: #bbf7d0;
+  font-family: monospace;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.effect-chance-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 18px;
+  font-family: monospace;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #020617;
+  border: 2px solid #fbbf24;
+  color: #f8fafc;
+  text-align: center;
+}
+
+.effect-chance-skip {
+  margin-top: 12px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.effect-chance-skip:hover {
+  color: #e2e8f0;
+}
+
+.niconico-comments {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.niconico-comment {
+  position: absolute;
+  right: -240px;
+  font-size: clamp(16px, 2.8vw, 22px);
+  font-weight: 1000;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+  white-space: nowrap;
+  animation: niconicoScroll 2.8s linear forwards;
+}
+
+@keyframes niconicoScroll {
+  from { right: -240px; }
+  to { right: 110%; }
+}
+
+@keyframes effectBannerPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 /* 2カラムロビーレイアウト */
 .lobby-layout {
   display: grid;
