@@ -24,6 +24,17 @@ const RARITY_GLOW = {
   epic: "rgba(251, 191, 36, 0.5)",
 };
 
+const KEY_HINT_MAP = [
+  { symbol: "==", hint: "== → = を2回" },
+  { symbol: "'", hint: "' → Shift + 7" },
+  { symbol: '"', hint: '" → Shift + 2' },
+  { symbol: "_", hint: "_ → Shift + ろ" },
+  { symbol: "*", hint: "* → Shift + :" },
+  { symbol: "(", hint: "( → Shift + 8" },
+  { symbol: ")", hint: ") → Shift + 9" },
+  { symbol: ":", hint: ": → ; キー（Shiftなし）" },
+];
+
 const STAGE_LEARNING_THEMES = [
   "半角スペース / クォート / print基礎",
   "文字列 / 変数 / True・Falseの入口",
@@ -712,6 +723,40 @@ function getShownCode(question, mode) {
   return mode === "debug" ? getDebugChallenge(question).buggy : getAnswerCode(question);
 }
 
+function getHighlightedBuggy(buggy, correct) {
+  if (!buggy || !correct) return [{ text: buggy || "", isError: false }];
+
+  let start = 0;
+  while (start < buggy.length && start < correct.length && buggy[start] === correct[start]) {
+    start += 1;
+  }
+
+  let buggyEnd = buggy.length - 1;
+  let correctEnd = correct.length - 1;
+  while (buggyEnd >= start && correctEnd >= start && buggy[buggyEnd] === correct[correctEnd]) {
+    buggyEnd -= 1;
+    correctEnd -= 1;
+  }
+
+  if (start >= buggy.length && start >= correct.length) {
+    return [{ text: buggy, isError: false }];
+  }
+
+  const result = [];
+  if (start > 0) {
+    result.push({ text: buggy.slice(0, start), isError: false });
+  }
+
+  const errorText = buggy.slice(start, buggyEnd + 1) || "□";
+  result.push({ text: errorText, isError: true });
+
+  if (buggyEnd + 1 < buggy.length) {
+    result.push({ text: buggy.slice(buggyEnd + 1), isError: false });
+  }
+
+  return result;
+}
+
 function getQuestionHint(question, mode) {
   if (!question) return "";
   return mode === "debug" ? getDebugChallenge(question).hint : question.normalHint || question.hint;
@@ -1262,6 +1307,9 @@ export default function App() {
   const shownCode = current ? getShownCode(current, selectedMode) : "";
   const currentHint = current ? getQuestionHint(current, selectedMode) : "";
   const currentDebug = current ? getDebugChallenge(current) : null;
+  const keyHints = current && (selectedLevel <= 1 || playerHp <= 60)
+    ? KEY_HINT_MAP.filter(({ symbol }) => answerCode.includes(symbol))
+    : [];
   const timedHints = getTimedHints(current, elapsed, TIME_LIMIT, selectedMode);
   const isJourney = Boolean(journey);
   const isBattle = started && !finished && !isJourney && current && enemy;
@@ -2628,7 +2676,21 @@ export default function App() {
                 marginBottom: 12,
               }}
             >
-              {shownCode}
+              {selectedMode === "debug" && currentDebug ? (
+                <span className="debug-code-highlight">
+                  {getHighlightedBuggy(currentDebug.buggy, answerCode).map((seg, idx) =>
+                    seg.isError ? (
+                      <span key={idx} className="debug-code-highlight__error">
+                        {seg.text}
+                      </span>
+                    ) : (
+                      <span key={idx}>{seg.text}</span>
+                    )
+                  )}
+                </span>
+              ) : (
+                shownCode
+              )}
             </div>
 
             <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 12 }}>
@@ -2782,6 +2844,14 @@ export default function App() {
             placeholder="呪文を入力。半角スペースとクォートに注意！"
             autoComplete="off"
           />
+
+          {keyHints.length > 0 && (
+            <div className="key-hint-panel">
+              {keyHints.map(({ symbol, hint }) => (
+                <span key={symbol} className="key-hint-badge">{hint}</span>
+              ))}
+            </div>
+          )}
 
           {isTypingWrong && (
             <div style={{ color: "#fca5a5", marginTop: 8, fontSize: 13 }}>
