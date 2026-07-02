@@ -2073,6 +2073,52 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
+.adventure-memo {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--memo-color) 24%, transparent), transparent 48%),
+    rgba(2, 6, 23, 0.72);
+  border: 1px solid color-mix(in srgb, var(--memo-color) 54%, rgba(148, 163, 184, 0.28));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--memo-color) 16%, transparent);
+  text-align: left;
+}
+
+.adventure-memo__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #bfdbfe;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.adventure-memo__header b {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--memo-color) 20%, rgba(2, 6, 23, 0.86));
+  border: 1px solid color-mix(in srgb, var(--memo-color) 58%, transparent);
+  color: #fef3c7;
+}
+
+.adventure-memo strong {
+  display: block;
+  color: color-mix(in srgb, var(--memo-color) 42%, #ffffff);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.adventure-memo p {
+  margin-top: 7px;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 /* 2カラムロビーレイアウト */
 .lobby-layout {
   display: grid;

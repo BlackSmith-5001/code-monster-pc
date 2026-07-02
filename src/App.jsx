@@ -1091,6 +1091,93 @@ export default function App() {
   const monstersSeen = save.monstersSeen || [];
   const monstersDefeatedIds = save.monstersDefeatedIds || [];
   const monsterBookTotal = getMonsterBookEntries().length;
+  const adventureMemo = useMemo(() => {
+    const clearedLevels = new Set(save.clearedLevels || []);
+    const totalPlays = (save.stagePlays || []).reduce((sum, count) => sum + count, 0);
+    const nextUnclearedIndex = LEVELS.findIndex((_, index) => !clearedLevels.has(index));
+
+    if (totalPlays === 0) {
+      return {
+        badge: "はじめの一歩",
+        title: "まずはLv.1 はじまりの草原へ",
+        body: "半角スペースとクォートの感覚をつかむのじゃ。迷ったら初心者の館に寄ってからで大丈夫。",
+        color: "#34d399",
+      };
+    }
+
+    if (!clearedLevels.has(0)) {
+      return {
+        badge: "草原踏破",
+        title: "Lv.1クリアを目指そう",
+        body: "10問クリアできれば基礎の型がかなり固まる。焦らず、記号までよく見て唱えるのじゃ。",
+        color: "#22c55e",
+      };
+    }
+
+    if (!debugDungeonUnlocked) {
+      return {
+        badge: "修行中",
+        title: `デバッグ解放まであと ${debugUnlockRemainingExp} EXP`,
+        body: `魔術師Lv.${DEBUG_UNLOCK_LEVEL}になるとデバッグダンジョンが開く。今はノーマルで呪文の形を鍛えよう。`,
+        color: "#fbbf24",
+      };
+    }
+
+    if (debugDungeonUnlocked && !save.debugTutorialCompleted) {
+      return {
+        badge: "新要素",
+        title: "デバッグチュートリアルに挑戦",
+        body: "バグ入りコードをそのまま写さず、正しい形に直す練習じゃ。短い練習から始めよう。",
+        color: "#fb923c",
+      };
+    }
+
+    if (nextUnclearedIndex >= 0) {
+      const nextStage = LEVELS[nextUnclearedIndex];
+
+      return {
+        badge: "次の冒険",
+        title: `${nextStage.label} ${nextStage.stageName}へ`,
+        body: STAGE_LEARNING_THEMES[nextUnclearedIndex] || "次のPython呪文をゆっくり覚えていこう。",
+        color: nextStage.color,
+      };
+    }
+
+    if (monstersSeen.length < monsterBookTotal) {
+      return {
+        badge: "図鑑集め",
+        title: "未発見モンスターを探そう",
+        body: `発見済みは ${monstersSeen.length} / ${monsterBookTotal}体。周回するとまだ見ぬコードモンスターに出会えるぞ。`,
+        color: "#38bdf8",
+      };
+    }
+
+    if ((fixedBugTypes || []).length < bugBookTotal) {
+      return {
+        badge: "バグ研究",
+        title: "バグ図鑑を埋めよう",
+        body: `浄化済みは ${(fixedBugTypes || []).length} / ${bugBookTotal}種。デバッグダンジョンで弱点を見抜くのじゃ。`,
+        color: "#fb7185",
+      };
+    }
+
+    return {
+      badge: "達人の周回",
+      title: "称号と図鑑を磨き込もう",
+      body: "ここまで来たら立派なコード魔術師じゃ。お気に入りの称号で、より気持ちよく周回していこう。",
+      color: "#a78bfa",
+    };
+  }, [
+    save.clearedLevels,
+    save.debugTutorialCompleted,
+    save.stagePlays,
+    debugDungeonUnlocked,
+    debugUnlockRemainingExp,
+    monstersSeen.length,
+    monsterBookTotal,
+    fixedBugTypes,
+    bugBookTotal,
+  ]);
   const stageQuestionTotal = REQUIRED_QUESTIONS_PER_STAGE;
   const stageQuestionPoolTotal = getQuestionCountForLevel(selectedLevel);
   const currentQuestionNumber = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
@@ -1881,6 +1968,7 @@ export default function App() {
                 totalPlays={(save.stagePlays || []).reduce((a, b) => a + b, 0)}
                 monstersSeen={save.monstersSeen || []}
                 clearedLevels={save.clearedLevels || []}
+                adventureMemo={adventureMemo}
               />
             </div>
 
@@ -3445,6 +3533,7 @@ function TitleHero({
   totalPlays,
   monstersSeen = [],
   clearedLevels = [],
+  adventureMemo,
 }) {
   const paradeMonsters = useMemo(() => {
     const seenSet = new Set(monstersSeen);
@@ -3597,6 +3686,17 @@ function TitleHero({
             </div>
           ))}
         </div>
+
+        {adventureMemo && (
+          <div className="adventure-memo" style={{ "--memo-color": adventureMemo.color }}>
+            <div className="adventure-memo__header">
+              <span>🧙‍♂️ 師匠からの次の目標</span>
+              <b>{adventureMemo.badge}</b>
+            </div>
+            <strong>{adventureMemo.title}</strong>
+            <p>{adventureMemo.body}</p>
+          </div>
+        )}
 
         {paradeMonsters.length > 0 && (
           <div className="monster-parade" style={{ backgroundImage: paradeBackground }}>
