@@ -1272,6 +1272,8 @@ export default function App() {
   const [damageMultiplierFromAssist, setDamageMultiplierFromAssist] = useState(1);
   const [comboProtectFromAssist, setComboProtectFromAssist] = useState(false);
   const [lastDamageDealt, setLastDamageDealt] = useState(0);
+  const [pendingEvolution, setPendingEvolution] = useState(null);
+  const [showEvolutionScreen, setShowEvolutionScreen] = useState(false);
 
   const [soundEnabled, setSoundEnabled] = useState(() => save.soundEnabled);
   const [flash, setFlash] = useState(null);
@@ -1293,6 +1295,7 @@ export default function App() {
   const menuBgmRef = useRef(null);
   const resultSoundSeqRef = useRef(0);
   const journeyTimerRef = useRef(null);
+  const postEvolutionActionRef = useRef(null);
 
   const stage = LEVELS[selectedLevel];
   const playerLevelInfo = getLevelInfoFromExp(save.exp);
@@ -1917,6 +1920,8 @@ export default function App() {
     setDamageMultiplierFromAssist(1);
     setComboProtectFromAssist(false);
     setLastDamageDealt(0);
+    setPendingEvolution(null);
+    setShowEvolutionScreen(false);
   }
 
   function triggerAssist(activeCompanion, currentCombo) {
@@ -1971,26 +1976,25 @@ export default function App() {
         ? getEvolvedId(activeCompanion.id)
         : null;
 
-      if (!nextId) {
-        return {
-          ...prev,
-          companionData: nextCompanionData,
-        };
+      if (nextId && !pendingEvolution) {
+        const nextMonster = EVOLVED_MONSTERS.find((monster) => monster.id === nextId);
+        if (nextMonster) {
+          setPendingEvolution({
+            fromMonster: activeCompanion,
+            toMonster: {
+              ...nextMonster,
+              image: nextMonster.image || activeCompanion.image,
+              icon: nextMonster.icon || nextMonster.sprite || activeCompanion.icon || activeCompanion.sprite,
+            },
+            nextId,
+          });
+          setBattleLog(`🌟 ${activeCompanion.name}に進化の予感！ 冒険結果で確認しよう。`);
+        }
       }
-
-      const nextMonster = EVOLVED_MONSTERS.find((monster) => monster.id === nextId);
-      setBattleLog(`🌟 ${activeCompanion.name}が「${nextMonster?.name || nextId}」へ進化した！`);
 
       return {
         ...prev,
-        equippedMonsterId: nextId,
-        companionData: {
-          ...nextCompanionData,
-          [nextId]: {
-            skillCount: 0,
-            evolutionStage: getEvolutionStage(nextId),
-          },
-        },
+        companionData: nextCompanionData,
       };
     });
 
@@ -2373,6 +2377,50 @@ export default function App() {
     }
 
     beginJourneyToNext(nextQuestionCount);
+  }
+
+  function handleResultAction(action) {
+    if (pendingEvolution) {
+      postEvolutionActionRef.current = action;
+      setShowEvolutionScreen(true);
+      stopActiveSounds();
+      stopBgm();
+      playSound("levelup", soundEnabled);
+      return;
+    }
+
+    action();
+  }
+
+  function handleEvolutionComplete() {
+    const evolution = pendingEvolution;
+    const nextAction = postEvolutionActionRef.current || goTown;
+    postEvolutionActionRef.current = null;
+
+    if (!evolution?.nextId) {
+      setShowEvolutionScreen(false);
+      setPendingEvolution(null);
+      nextAction();
+      return;
+    }
+
+    setSave((prev) => ({
+      ...prev,
+      equippedMonsterId: evolution.nextId,
+      companionData: {
+        ...(prev.companionData || {}),
+        [evolution.nextId]: {
+          ...(prev.companionData?.[evolution.nextId] || {}),
+          skillCount: 0,
+          evolutionStage: getEvolutionStage(evolution.nextId),
+        },
+      },
+    }));
+
+    setBattleLog(`🌟 ${evolution.fromMonster.name}が「${evolution.toMonster.name}」へ進化した！`);
+    setShowEvolutionScreen(false);
+    setPendingEvolution(null);
+    nextAction();
   }
 
   function goTown() {
@@ -3197,9 +3245,9 @@ export default function App() {
           combo={combo}
           playerLevel={getLevelInfoFromExp(save.exp).playerLevel}
           title={getPlayerTitle(getLevelInfoFromExp(save.exp).playerLevel)}
-          onTown={goTown}
+          onTown={() => handleResultAction(goTown)}
           isLastStage={selectedLevel >= LEVELS.length - 1}
-          onNextStage={() => handleStart(selectedLevel + 1)}
+          onNextStage={() => handleResultAction(() => handleStart(selectedLevel + 1))}
         />
       )}
 
@@ -3348,7 +3396,7 @@ export default function App() {
 
           {resultType !== "defeat" && resultType !== "stageClear" && (
             <button
-              onClick={continueBattle}
+              onClick={() => handleResultAction(continueBattle)}
               style={{
                 padding: "12px 30px",
                 background: "linear-gradient(135deg, #059669, #0f766e)",
@@ -3367,7 +3415,7 @@ export default function App() {
 
           {(resultType === "defeat" || resultType === "timeup") && (
             <button
-              onClick={() => handleStart(selectedLevel)}
+              onClick={() => handleResultAction(() => handleStart(selectedLevel))}
               style={{
                 padding: "12px 30px",
                 background: "linear-gradient(135deg, #b45309, #d97706)",
@@ -3385,7 +3433,7 @@ export default function App() {
           )}
 
           <button
-            onClick={goTown}
+            onClick={() => handleResultAction(goTown)}
             style={{
               padding: "12px 30px",
               background: (resultType === "defeat" || resultType === "timeup")
@@ -3406,12 +3454,86 @@ export default function App() {
         </div>
       )}
 
+      {showEvolutionScreen && pendingEvolution && (
+        <EvolutionScreen
+          evolution={pendingEvolution}
+          onComplete={handleEvolutionComplete}
+        />
+      )}
+
       {screenFade && (
         <div
           className={screenFade === "out" ? "screen-fade-overlay screen-fade-out" : "screen-fade-overlay screen-fade-in"}
           onAnimationEnd={() => { if (screenFade === "in") setScreenFade(null); }}
         />
       )}
+      </div>
+    </div>
+  );
+}
+
+
+function EvolutionScreen({ evolution, onComplete }) {
+  const comments = [
+    "進化！！",
+    "強くなった！",
+    `${evolution.toMonster.name}！`,
+    "すごい！！",
+    "かっこいい！",
+    "レベルアップ以上！",
+    "相棒が変わった！",
+    "おめでとう！！",
+    "最高だ！",
+    "bbbbbbb←おいやめろ",
+  ];
+
+  return (
+    <div className="evolution-screen">
+      <div className="evolution-screen__bg" />
+      <div className="evolution-screen__content">
+        <div className="evolution-screen__monsters" aria-hidden="true">
+          {evolution.fromMonster?.image ? (
+            <img src={evolution.fromMonster.image} alt="" className="evolution-screen__monster evolution-screen__monster--from" />
+          ) : (
+            <span className="evolution-screen__monster evolution-screen__monster--emoji evolution-screen__monster--from">
+              {evolution.fromMonster?.icon || evolution.fromMonster?.sprite || "✨"}
+            </span>
+          )}
+          {evolution.toMonster?.image ? (
+            <img src={evolution.toMonster.image} alt="" className="evolution-screen__monster evolution-screen__monster--to" />
+          ) : (
+            <span className="evolution-screen__monster evolution-screen__monster--emoji evolution-screen__monster--to">
+              {evolution.toMonster?.icon || evolution.toMonster?.sprite || "🌟"}
+            </span>
+          )}
+        </div>
+        <p className="evolution-screen__from">{evolution.fromMonster.name}</p>
+        <p className="evolution-screen__arrow">▼ 進化！ ▼</p>
+        <p className="evolution-screen__to">{evolution.toMonster.name}</p>
+        <p className="evolution-screen__skill">
+          ✨ {evolution.toMonster.assistSkill.name}
+        </p>
+        <p className="evolution-screen__effect">
+          {evolution.toMonster.assistSkill.effect}
+        </p>
+        <button type="button" className="evolution-screen__btn" onClick={onComplete}>
+          次へ進む
+        </button>
+      </div>
+      <div className="niconico-comments" aria-hidden="true">
+        {comments.map((comment, index) => (
+          <span
+            key={`${comment}-${index}`}
+            className="niconico-comment"
+            style={{
+              top: `${10 + (index % 7) * 12}%`,
+              animationDelay: `${index * 0.35}s`,
+              fontSize: index < 3 ? "22px" : "16px",
+            }}
+          >
+            {comment}
+          </span>
+        ))}
       </div>
     </div>
   );
