@@ -1978,6 +1978,7 @@ export default function App() {
             <TitleMainMenu
               playerLevelInfo={playerLevelInfo}
               playerTitle={playerTitle}
+              activePassive={activePassive}
               save={save}
               expPercent={expPercent}
               fixedBugTypes={fixedBugTypes}
@@ -3074,9 +3075,19 @@ function JourneyTransition({ journey }) {
   );
 }
 
+function formatPassive(passive) {
+  if (!passive || passive.type === "none") return null;
+  if (passive.type === "damageBonus") return `⚔️ 正解ダメージ +${passive.value}`;
+  if (passive.type === "comboBonus") return `🔥 コンボダメージ +${passive.value}%`;
+  if (passive.type === "expBonus") return `✨ EXP獲得量 +${Math.round(passive.value * 100)}%`;
+  if (passive.type === "timeBonus") return `⏱️ 制限時間 +${passive.value}秒`;
+  return null;
+}
+
 function TitleMainMenu({
   playerLevelInfo,
   playerTitle,
+  activePassive,
   save,
   expPercent,
   fixedBugTypes,
@@ -3141,6 +3152,11 @@ function TitleMainMenu({
         <div>
           <div className="main-menu__eyebrow">現在の冒険者</div>
           <h2>Lv.{playerLevelInfo.playerLevel} / {playerTitle}</h2>
+          {formatPassive(activePassive) && (
+            <p style={{ margin: "2px 0 4px", fontSize: 12, color: "#fbbf24", fontWeight: "bold" }}>
+              パッシブ：{formatPassive(activePassive)}
+            </p>
+          )}
           <p>累計EXP {save.exp} / 討伐 {save.monstersDefeated}体 / 最大コンボ {save.maxCombo}</p>
         </div>
         <div className="main-menu__exp">
@@ -3735,6 +3751,23 @@ function TitleHero({
             )}
           </div>
         )}
+
+        <div className="title-links">
+          <a
+            href="https://twitter.com/intent/tweet?text=PythonをRPGで学ぶゲーム「コードモンスター」遊んでみた！%20%23コードモンスター%20%23Python&url=https://polite-frangollo-ae7109.netlify.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="title-links__share"
+          >
+            𝕏 このゲームをポストする
+          </a>
+          <div className="title-links__sites">
+            <a href="https://polite-frangollo-ae7109.netlify.app/" target="_blank" rel="noopener noreferrer">📱 スマホ版</a>
+            <a href="https://github.com/BlackSmith-5001" target="_blank" rel="noopener noreferrer">🐙 Github</a>
+            <a href="https://note.com/rapid_tucan2305" target="_blank" rel="noopener noreferrer">📝 note</a>
+            <a href="https://twitter.com/WimhkDO47132527" target="_blank" rel="noopener noreferrer">𝕏 X</a>
+          </div>
+        </div>
       </div>
     </div>
   );

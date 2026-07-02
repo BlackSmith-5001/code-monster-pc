@@ -2119,6 +2119,54 @@
   line-height: 1.7;
 }
 
+.title-links {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title-links__share {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  background: rgba(29, 161, 242, 0.15);
+  border: 1px solid rgba(29, 161, 242, 0.4);
+  border-radius: 10px;
+  color: #7dd3fc;
+  font-weight: bold;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.title-links__share:hover {
+  background: rgba(29, 161, 242, 0.28);
+}
+
+.title-links__sites {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.title-links__sites a {
+  text-align: center;
+  padding: 7px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.title-links__sites a:hover {
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
 /* 2カラムロビーレイアウト */
 .lobby-layout {
   display: grid;
