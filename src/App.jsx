@@ -1969,6 +1969,10 @@ export default function App() {
                 monstersSeen={save.monstersSeen || []}
                 clearedLevels={save.clearedLevels || []}
                 adventureMemo={adventureMemo}
+                onNavigate={(screen) => {
+                  playSound("click", soundEnabled);
+                  setMenuScreen(screen);
+                }}
               />
             </div>
 
@@ -3550,6 +3554,7 @@ function TitleHero({
   monstersSeen = [],
   clearedLevels = [],
   adventureMemo,
+  onNavigate,
 }) {
   const paradeMonsters = useMemo(() => {
     const seenSet = new Set(monstersSeen);
@@ -3704,14 +3709,20 @@ function TitleHero({
         </div>
 
         {adventureMemo && (
-          <div className="adventure-memo" style={{ "--memo-color": adventureMemo.color }}>
+          <button
+            type="button"
+            className="adventure-memo"
+            style={{ "--memo-color": adventureMemo.color }}
+            onClick={() => onNavigate?.("adventure")}
+          >
             <div className="adventure-memo__header">
               <span>🧙‍♂️ 師匠からの次の目標</span>
               <b>{adventureMemo.badge}</b>
             </div>
             <strong>{adventureMemo.title}</strong>
             <p>{adventureMemo.body}</p>
-          </div>
+            <span className="adventure-memo__cta">タップして冒険へ →</span>
+          </button>
         )}
 
         {paradeMonsters.length > 0 && (
@@ -3763,9 +3774,9 @@ function TitleHero({
           </a>
           <div className="title-links__sites">
             <a href="https://polite-frangollo-ae7109.netlify.app/" target="_blank" rel="noopener noreferrer">📱 スマホ版</a>
-            <a href="https://github.com/BlackSmith-5001" target="_blank" rel="noopener noreferrer">🐙 Github</a>
-            <a href="https://note.com/rapid_tucan2305" target="_blank" rel="noopener noreferrer">📝 note</a>
-            <a href="https://twitter.com/WimhkDO47132527" target="_blank" rel="noopener noreferrer">𝕏 X</a>
+            <a href="https://github.com/BlackSmith-5001" target="_blank" rel="noopener noreferrer">🐙 作者Github</a>
+            <a href="https://note.com/rapid_tucan2305" target="_blank" rel="noopener noreferrer">📝 作者note</a>
+            <a href="https://twitter.com/WimhkDO47132527" target="_blank" rel="noopener noreferrer">𝕏 作者X</a>
           </div>
         </div>
       </div>
@@ -4857,6 +4868,93 @@ function BeginnerGuide({ onBack, onGoAdventure }) {
   const [selectedLesson, setSelectedLesson] = useState(null);
   const lessons = [
     {
+      id: "how_to_play",
+      title: "🎮 このゲームの遊び方",
+      body: (
+        <>
+          <p>コードモンスターは、表示されたPythonコードを入力してモンスターと戦うタイピングRPGです。</p>
+          <ul>
+            <li>お手本コードを見て、入力欄に同じように打ちます。</li>
+            <li>正解すると敵にダメージ。不正解や時間切れではピンチになります。</li>
+            <li>1ステージで決められた問題数をこなすとクリアです。</li>
+            <li>図鑑には、出会ったモンスターや浄化したバグが記録されます。</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "spell_basics",
+      title: "📜 呪文とは？",
+      body: (
+        <>
+          <p>このゲームでいう「呪文」は、Pythonの短いコードのことです。</p>
+          <p>
+            たとえば <code>hp = 100</code> は「hpという名前に100を入れる」呪文です。
+            文字・記号・スペースまで含めて、できるだけ正確に唱えるのがコツです。
+          </p>
+          <p>最初は意味が全部わからなくても大丈夫。写しているうちに、少しずつ形が見えてきます。</p>
+        </>
+      ),
+    },
+    {
+      id: "combo",
+      title: "🔥 コンボとは？",
+      body: (
+        <>
+          <p>連続で正解するとコンボが続き、攻撃が少し強くなります。</p>
+          <p>
+            途中で間違えるとコンボは途切れますが、気にしすぎなくて大丈夫です。
+            まずは「ゆっくり正確に」、慣れてきたら「速く正確に」を目指しましょう。
+          </p>
+          <p>称号によっては、コンボ時のダメージをさらに伸ばせます。</p>
+        </>
+      ),
+    },
+    {
+      id: "mage_level",
+      title: "🧙 魔術師レベル",
+      body: (
+        <>
+          <p>冒険でEXPを集めると、魔術師レベルが上がります。</p>
+          <ul>
+            <li>レベルが上がると、称号の獲得条件を満たすことがあります。</li>
+            <li>称号が増えると、冒険で使えるパッシブ効果も増えていきます。</li>
+            <li>デバッグダンジョンは、魔術師Lv.{DEBUG_UNLOCK_LEVEL}で解放されます。</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "stage_intro",
+      title: "🗺️ ステージ紹介",
+      body: (
+        <>
+          <p>まずはLv.1から順番に遊ぶのがおすすめです。</p>
+          <ul>
+            <li><b>Lv.1 はじまりの草原：</b>変数、半角スペース、クォート、print基礎。</li>
+            <li><b>Lv.2 ことばの森：</b>文字列、変数名、True / False、名前の扱い。</li>
+            <li><b>Lv.3 演算の洞窟：</b>足し算、引き算、掛け算、割り算、数値計算。</li>
+            <li><b>Lv.4 分岐の火山：</b>if、比較演算子、コロン、インデント。</li>
+          </ul>
+          <p>難しく感じたら、前のステージを周回して図鑑を埋めながら慣れていきましょう。</p>
+        </>
+      ),
+    },
+    {
+      id: "titles_passive",
+      title: "🏷️ 称号とパッシブ",
+      body: (
+        <>
+          <p>称号は、冒険者につける肩書きです。冒険モード選択の中で付け替えできます。</p>
+          <p>
+            一部の称号にはパッシブ効果があり、正解ダメージ、コンボ、EXP、制限時間などを少し助けてくれます。
+            効果は大きすぎませんが、周回がじわっと楽になります。
+          </p>
+          <p>新しい称号を手に入れたら、冒険モード選択で効果を確認してみましょう。</p>
+        </>
+      ),
+    },
+    {
       id: "python",
       title: "🐍 Pythonってなに？",
       body: (
@@ -5026,6 +5124,7 @@ function BeginnerGuide({ onBack, onGoAdventure }) {
 function GuideItem({ title, children }) {
   return (
     <div
+      className="beginner-guide-card"
       style={{
         background: "rgba(15,23,42,0.78)",
         border: "1px solid #334155",
