@@ -1825,21 +1825,46 @@ export default function App() {
     <div
       style={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, #172554 0%, #020617 45%, #000 100%)",
+        backgroundImage: "url('/images/title-bg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        backgroundAttachment: "fixed",
         fontFamily: "monospace",
-        padding: "24px 16px",
+        padding: "0 20px 40px",
         color: "#e2e8f0",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         boxSizing: "border-box",
+        position: "relative",
       }}
     >
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(2, 6, 23, 0.55)",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      />
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
       {journey && <JourneyTransition journey={journey} />}
 
       {!journey && !started && !finished && (
-        <div style={{ width: "100%", maxWidth: 1400, marginTop: 20 }}>
+        <div style={{ width: "100%", maxWidth: 1400, marginTop: 0 }}>
+          <TitleHeader />
+
           <div className="lobby-layout">
             <div className="lobby-layout__left">
               <TitleHero
@@ -2645,6 +2670,7 @@ export default function App() {
           onAnimationEnd={() => { if (screenFade === "in") setScreenFade(null); }}
         />
       )}
+      </div>
     </div>
   );
 }
@@ -2982,9 +3008,9 @@ function TitleMainMenu({
     {
       id: "adventure",
       icon: "⚔️",
-      title: "冒険モード選択",
+      title: "冒険モード選択・称号付け替え",
       description: "ノーマル / デバッグダンジョン",
-      sub: "呪文を唱えてモンスターを倒そう。Lv.5でデバッグダンジョン解放。",
+      sub: "呪文を唱えてモンスターを倒そう。称号装備もこちら、強力なパッシブ効果を装備しよう。",
       color: "#fbbf24",
     },
     {
@@ -3391,6 +3417,23 @@ function DebugTutorialScreen({ onBack, onComplete }) {
   );
 }
 
+function TitleHeader() {
+  const [logoError, setLogoError] = useState(false);
+  const logoSrc = "/images/title-logo.png";
+
+  return (
+    <div className="title-header">
+      <TitleLogo showImageLogo={!logoError} logoSrc={logoSrc} onError={() => setLogoError(true)} />
+      <div className="title-header__meta">
+        <span className="title-header__badge">PYTHON TYPING RPG</span>
+        <p className="title-header__desc">
+          Pythonの最初のつまずき、<b>半角スペース・クォート・コロン</b>をRPGで倒すタイピングゲーム。
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function TitleHero({
   soundEnabled,
   onPlayMenuBgm,
@@ -3403,9 +3446,6 @@ function TitleHero({
   monstersSeen = [],
   clearedLevels = [],
 }) {
-  const [logoError, setLogoError] = useState(false);
-  const logoSrc = "/images/title-logo.png";
-  const showImageLogo = !logoError;
   const paradeMonsters = useMemo(() => {
     const seenSet = new Set(monstersSeen);
     const candidates = ENEMY_VARIANTS.filter((monster) => seenSet.has(monster.id));
@@ -3465,9 +3505,9 @@ function TitleHero({
         flexDirection: "column",
         height: "100%",
         boxSizing: "border-box",
-        background:
-          "linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.92), rgba(88,28,135,0.72))",
-        border: "1px solid rgba(125,211,252,0.55)",
+        background: "rgba(2, 6, 23, 0.72)",
+        border: "1px solid rgba(125, 211, 252, 0.35)",
+        backdropFilter: "blur(8px)",
         borderRadius: 24,
         padding: "26px 18px 24px",
         boxShadow:
@@ -3485,43 +3525,6 @@ function TitleHero({
       />
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", flex: 1 }}>
-        <div
-          style={{
-            display: "inline-block",
-            padding: "5px 12px",
-            borderRadius: 999,
-            background: "rgba(2,6,23,0.72)",
-            border: "1px solid rgba(94,234,212,0.55)",
-            color: "#a7f3d0",
-            fontSize: 12,
-            fontWeight: 900,
-            letterSpacing: 2,
-            marginBottom: 10,
-          }}
-        >
-          PYTHON TYPING RPG
-        </div>
-
-        <TitleLogo showImageLogo={showImageLogo} logoSrc={logoSrc} onError={() => setLogoError(true)} />
-
-        <div
-          style={{
-            background: "rgba(2,6,23,0.58)",
-            border: "1px solid rgba(148,163,184,0.28)",
-            borderRadius: 14,
-            padding: "10px 14px",
-            color: "#dbeafe",
-            fontSize: 13,
-            lineHeight: 1.6,
-            marginBottom: 12,
-            textAlign: "left",
-          }}
-        >
-          Pythonの最初のつまずき、<br />
-          <b style={{ color: "#67e8f9" }}>半角スペース・クォート・コロン</b>を<br />
-          RPGで倒すタイピングゲーム。
-        </div>
-
         <div
           style={{
             display: "grid",
