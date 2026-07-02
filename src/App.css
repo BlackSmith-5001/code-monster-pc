@@ -2235,6 +2235,50 @@
   box-sizing: border-box;
 }
 
+.effect-chance-intro-card {
+  width: min(440px, 100%);
+  padding: 26px 22px;
+  border-radius: 18px;
+  border: 2px solid #facc15;
+  background:
+    radial-gradient(circle at top, rgba(250, 204, 21, 0.2), transparent 48%),
+    rgba(15, 23, 42, 0.97);
+  color: #f8fafc;
+  text-align: center;
+  box-shadow: 0 0 42px rgba(250, 204, 21, 0.3);
+  animation: effectIntroFadeIn 0.28s ease-out;
+}
+
+.effect-chance-intro-title {
+  margin-bottom: 12px;
+  color: #facc15;
+  font-size: clamp(24px, 5vw, 34px);
+  font-weight: 1000;
+  text-shadow: 0 0 24px rgba(250, 204, 21, 0.72);
+}
+
+.effect-chance-intro-card p {
+  margin: 0 0 18px;
+  color: #dbeafe;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.effect-chance-intro-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 26px;
+  background: linear-gradient(135deg, #facc15, #fb7185);
+  color: #1f1300;
+  font-weight: 1000;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(250, 204, 21, 0.25);
+}
+
+.effect-chance-intro-button:hover {
+  filter: brightness(1.06);
+}
+
 .effect-chance-banner {
   font-size: clamp(22px, 4vw, 34px);
   font-weight: 1000;
@@ -2626,18 +2670,31 @@
   gap: 6px;
   justify-content: center;
   margin-top: 8px;
-  opacity: 0.7;
 }
 
 .key-hint-badge {
-  font-size: 11px;
+  font-size: 1rem;
   font-family: monospace;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid #334155;
-  color: #94a3b8;
-  padding: 3px 8px;
-  border-radius: 6px;
+  background: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.75);
+  color: #1a1a1a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
   white-space: nowrap;
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.22);
+}
+
+.answer-pending {
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18), 0 0 24px rgba(34, 197, 94, 0.22);
+}
+
+.answer-pending-note {
+  margin-top: 8px;
+  color: #bbf7d0;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .debug-code-highlight {
@@ -2747,8 +2804,8 @@
 
 .companion-panel__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
   margin-top: 12px;
 }
 
@@ -2766,13 +2823,14 @@
   display: grid;
   gap: 6px;
   text-align: left;
-  min-height: 160px;
-  padding: 12px;
+  min-height: 138px;
+  padding: 8px;
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.24);
   background: rgba(2, 6, 23, 0.72);
   color: #e2e8f0;
   cursor: pointer;
+  font-size: 0.85rem;
 }
 
 .companion-card--active {
@@ -2790,14 +2848,14 @@
 }
 
 .companion-card__visual {
-  width: 58px;
-  height: 58px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(148, 163, 184, 0.2);
-  font-size: 28px;
+  font-size: 2rem;
 }
 
 .companion-card__visual img {
@@ -2813,6 +2871,31 @@
 .companion-card small {
   color: #cbd5e1;
   line-height: 1.45;
+}
+
+.evolution-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.evolution-progress__bar {
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.evolution-progress__bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #facc15);
+  transition: width 0.4s ease;
+}
+
+.evolution-progress__label {
+  font-size: 0.75rem;
+  color: #a78bfa;
 }
 
 .assist-gauge {
@@ -2846,11 +2929,12 @@
   overflow: hidden;
   border-radius: inherit;
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.16), rgba(2, 6, 23, 0.08));
+  box-shadow: 0 0 20px #facc1580, inset 0 0 20px #facc1580;
 }
 
 .assist-cutin-monster {
-  width: 120px;
-  height: 120px;
+  width: 96px;
+  height: 96px;
   object-fit: contain;
   animation: cutinSlide 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   filter: drop-shadow(0 0 24px rgba(251, 191, 36, 0.8));
@@ -2859,7 +2943,7 @@
 .assist-cutin-monster--emoji {
   display: grid;
   place-items: center;
-  font-size: 74px;
+  font-size: 3rem;
 }
 
 .assist-cutin-skill {
@@ -2873,15 +2957,15 @@
 
 .assist-cutin-name {
   display: block;
-  font-size: 14px;
-  color: #fbbf24;
+  font-size: 1.4rem;
+  color: #facc15;
   font-weight: 900;
   text-shadow: 0 0 12px rgba(251,191,36,0.8);
 }
 
 .assist-cutin-effect {
   display: block;
-  font-size: 20px;
+  font-size: 1rem;
   color: #fff;
   font-weight: 900;
   text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
@@ -2993,6 +3077,40 @@
   font-size: 86px;
 }
 
+.evolution-screen__single {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 170px;
+  margin-bottom: 10px;
+}
+
+.evolution-screen__monster--single {
+  position: static;
+  width: min(48vw, 176px);
+  height: min(48vw, 176px);
+  transform: none;
+}
+
+.evolution-screen__monster--complete {
+  animation: evolutionCompletePop 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.evolution-screen__flash-core {
+  display: grid;
+  place-items: center;
+  width: min(52vw, 190px);
+  height: min(52vw, 190px);
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  color: #fff7ed;
+  font-size: clamp(64px, 18vw, 120px);
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(250, 204, 21, 0.78) 32%, rgba(124, 58, 237, 0.18) 68%, transparent 72%);
+  box-shadow: 0 0 80px rgba(250, 204, 21, 0.62);
+  animation: evolutionFlashCore 1.1s ease-in-out infinite;
+}
+
 .evolution-screen__from {
   font-size: 18px;
   color: #94a3b8;
@@ -3079,6 +3197,32 @@
 @keyframes evolutionPulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
+}
+
+@keyframes effectIntroFadeIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.evolution-shake {
+  animation: shake 0.4s ease infinite;
+}
+
+@keyframes evolutionFlashCore {
+  0%, 100% { transform: scale(0.92); filter: brightness(1); }
+  50% { transform: scale(1.12); filter: brightness(1.35); }
+}
+
+@keyframes evolutionCompletePop {
+  0% { opacity: 0; transform: scale(0.42) rotate(-8deg); }
+  65% { opacity: 1; transform: scale(1.12) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
 @keyframes evolutionFrom {

@@ -1111,6 +1111,15 @@ function getEvolutionThreshold(monsterId) {
   return getEvolutionStage(monsterId) === 0 ? 5 : 12;
 }
 
+function getEvolutionHint(skillCount, threshold) {
+  const ratio = threshold > 0 ? skillCount / threshold : 1;
+  if (ratio === 0) return "まだまだこれから…";
+  if (ratio < 0.4) return "少しずつ成長中…";
+  if (ratio < 0.7) return "なんか様子が変わってきた？";
+  if (ratio < 1.0) return "近い！もうすぐかも！";
+  return "進化の気配…！";
+}
+
 function getCompanionSkillCount(save, monsterId) {
   return save?.companionData?.[monsterId]?.skillCount || 0;
 }
@@ -1131,6 +1140,9 @@ function getOwnedCompanionMonsters(save) {
       const base = ENEMY_VARIANTS.find((monster) => monster.id === id) || getBaseMonsterForEvolution(id);
       const monster = evolved || base;
       if (!monster) return null;
+      // 進化済みの上位形がすでに所持リストにあれば基底形は非表示
+      const nextEvolved = EVOLVED_MONSTERS.find((m) => m.evolvedFrom === id);
+      if (nextEvolved && ownedIds.has(nextEvolved.id)) return null;
 
       return {
         ...base,
@@ -1141,7 +1153,12 @@ function getOwnedCompanionMonsters(save) {
         assistSkill: monster.assistSkill || { name: "応援", effect: "コンボ+3", type: "combo", value: 3 },
       };
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.id === save.equippedMonsterId) return -1;
+      if (b.id === save.equippedMonsterId) return 1;
+      return 0;
+    });
 }
 
 
@@ -1257,6 +1274,7 @@ export default function App() {
   const [currentEffectQuestion, setCurrentEffectQuestion] = useState(null);
   const [effectTyped, setEffectTyped] = useState("");
   const [pendingEffectResume, setPendingEffectResume] = useState(null);
+  const [showEffectChanceIntro, setShowEffectChanceIntro] = useState(false);
   const [shieldActive, setShieldActive] = useState(false);
   const [damageMultiplier, setDamageMultiplier] = useState(1);
   const [expBonusMultiplier, setExpBonusMultiplier] = useState(1);
@@ -1274,6 +1292,8 @@ export default function App() {
   const [lastDamageDealt, setLastDamageDealt] = useState(0);
   const [pendingEvolution, setPendingEvolution] = useState(null);
   const [showEvolutionScreen, setShowEvolutionScreen] = useState(false);
+  const [evolutionPhase, setEvolutionPhase] = useState(0);
+  const [pendingCorrect, setPendingCorrect] = useState(false);
 
   const [soundEnabled, setSoundEnabled] = useState(() => save.soundEnabled);
   const [flash, setFlash] = useState(null);
@@ -1537,6 +1557,17 @@ export default function App() {
     }
   }, [soundEnabled, started, finished]);
 
+  useEffect(() => {
+    if (!showEvolutionScreen || evolutionPhase >= 2) return undefined;
+
+    const delay = evolutionPhase === 0 ? 2500 : 1500;
+    const timer = setTimeout(() => {
+      setEvolutionPhase((phase) => Math.min(2, phase + 1));
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [showEvolutionScreen, evolutionPhase]);
+
   function focusInput() {
     setTimeout(() => inputRef.current?.focus(), 50);
   }
@@ -1551,6 +1582,7 @@ export default function App() {
     setExpBonusMultiplier(1);
     setEffectTimeBonus(0);
     setEffectComments([]);
+    setShowEffectChanceIntro(false);
     setShowEffectChanceBanner(false);
     setQuestionsSinceEffect(0);
     setNextEffectAt(getNextEffectChanceAt());
@@ -1758,6 +1790,7 @@ export default function App() {
     setCurrentEffectQuestion(randomEffect);
     setPendingEffectResume(resumeAction);
     setEffectChanceActive(true);
+    setShowEffectChanceIntro(true);
     setEffectTyped("");
     setShowEffectChanceBanner(true);
     setQuestionsSinceEffect(0);
@@ -1786,6 +1819,7 @@ export default function App() {
   function moveToNextQuestion(nextQuestionCount, message) {
     const nextEncounter = getEncounterFromDeck(encounterDeck, nextQuestionCount, selectedLevel);
 
+    setPendingCorrect(false);
     setCurrent(nextEncounter.question);
     setBattleLog(message);
 
@@ -1824,6 +1858,7 @@ export default function App() {
     setEffectChanceActive(false);
     setCurrentEffectQuestion(null);
     setEffectTyped("");
+    setShowEffectChanceIntro(false);
 
     if (!resumeAction) {
       setEffectTimeBonus(0);
@@ -1884,6 +1919,7 @@ export default function App() {
   function skipEffectChance() {
     const resumeAction = pendingEffectResume;
     setBattleLog("効果チャンスをスキップした。次の呪文へ進もう。");
+    setShowEffectChanceIntro(false);
     resumeAfterEffect(resumeAction);
   }
 
@@ -1922,6 +1958,8 @@ export default function App() {
     setLastDamageDealt(0);
     setPendingEvolution(null);
     setShowEvolutionScreen(false);
+    setEvolutionPhase(0);
+    setPendingCorrect(false);
   }
 
   function triggerAssist(activeCompanion, currentCombo) {
@@ -2090,13 +2128,24 @@ export default function App() {
   function handleChange(e) {
     if (!started || finished || !current || !enemy) return;
     if (effectChanceActive) return;
+    if (pendingCorrect) return;
 
     const val = e.target.value;
     setTyped(val);
 
-    if (val !== answerCode) return;
+    if (val === answerCode) {
+      clearInterval(timerRef.current);
+      setPendingCorrect(true);
+      setFlash("ok");
+      setBattleLog("✅ 呪文が完成！Enterキーで確定して攻撃しよう。");
+    }
+  }
+
+  function resolveCorrectAnswer() {
+    if (!started || finished || !current || !enemy || !pendingCorrect) return;
 
     clearInterval(timerRef.current);
+    setPendingCorrect(false);
 
     const wasReview = reviewMode;
     const isCritical = remaining >= Math.ceil(TIME_LIMIT * 0.6) || combo >= 2;
@@ -2285,6 +2334,12 @@ export default function App() {
   }
 
   function handleKeyDown(e) {
+    if (e.key === "Enter" && pendingCorrect) {
+      e.preventDefault();
+      resolveCorrectAnswer();
+      return;
+    }
+
     if (e.key === "Enter" && typed !== answerCode) {
       setTyped("");
       setBattleLog(
@@ -2320,6 +2375,7 @@ export default function App() {
     setRecentTitleUnlocks([]);
     setShowDetails(false);
     setTyped("");
+    setPendingCorrect(false);
     setElapsed(0);
     setReviewMode(false);
     setJourney(null);
@@ -2346,6 +2402,7 @@ export default function App() {
 
     setShowDetails(false);
     setTyped("");
+    setPendingCorrect(false);
     setElapsed(0);
     setReviewMode(false);
 
@@ -2382,6 +2439,7 @@ export default function App() {
   function handleResultAction(action) {
     if (pendingEvolution) {
       postEvolutionActionRef.current = action;
+      setEvolutionPhase(0);
       setShowEvolutionScreen(true);
       stopActiveSounds();
       stopBgm();
@@ -2419,6 +2477,7 @@ export default function App() {
 
     setBattleLog(`🌟 ${evolution.fromMonster.name}が「${evolution.toMonster.name}」へ進化した！`);
     setShowEvolutionScreen(false);
+    setEvolutionPhase(0);
     setPendingEvolution(null);
     nextAction();
   }
@@ -2850,26 +2909,42 @@ export default function App() {
 
           {effectChanceActive && currentEffectQuestion && (
             <div className="effect-chance-overlay">
-              {showEffectChanceBanner && (
+              {showEffectChanceIntro ? (
+                <div className="effect-chance-intro-card">
+                  <div className="effect-chance-intro-title">✨ タイピング効果チャンス！</div>
+                  <p>この問題をクリアすると特別な効果が発動するよ！</p>
+                  <button
+                    type="button"
+                    className="effect-chance-intro-button"
+                    onClick={() => setShowEffectChanceIntro(false)}
+                  >
+                    準備OK！
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {showEffectChanceBanner && (
                 <div className="effect-chance-banner">
                   ⚡ タイピング効果チャンス！！
                 </div>
+                  )}
+                  <div className="effect-chance-card">
+                    <p className="effect-chance-label">{currentEffectQuestion.effectLabel}</p>
+                    <p className="effect-chance-hint">{currentEffectQuestion.hint}</p>
+                    <div className="effect-chance-code">{currentEffectQuestion.code}</div>
+                    <input
+                      className="effect-chance-input"
+                      autoFocus
+                      value={effectTyped}
+                      placeholder={currentEffectQuestion.code}
+                      onChange={handleEffectInputChange}
+                    />
+                    <button type="button" className="effect-chance-skip" onClick={skipEffectChance}>
+                      スキップして次へ
+                    </button>
+                  </div>
+                </>
               )}
-              <div className="effect-chance-card">
-                <p className="effect-chance-label">{currentEffectQuestion.effectLabel}</p>
-                <p className="effect-chance-hint">{currentEffectQuestion.hint}</p>
-                <div className="effect-chance-code">{currentEffectQuestion.code}</div>
-                <input
-                  className="effect-chance-input"
-                  autoFocus
-                  value={effectTyped}
-                  placeholder={currentEffectQuestion.code}
-                  onChange={handleEffectInputChange}
-                />
-                <button type="button" className="effect-chance-skip" onClick={skipEffectChance}>
-                  スキップして次へ
-                </button>
-              </div>
             </div>
           )}
 
@@ -3161,13 +3236,15 @@ export default function App() {
 
           <input
             ref={inputRef}
+            className={pendingCorrect ? "answer-pending" : ""}
             value={typed}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            readOnly={pendingCorrect}
             style={{
               width: "100%",
               background: reviewMode ? "#1e1b4b" : "#030712",
-              border: `2px solid ${isTypingWrong ? "#ef4444" : reviewMode ? "#fbbf24" : "#4b5563"}`,
+              border: `2px solid ${pendingCorrect ? "#22c55e" : isTypingWrong ? "#ef4444" : reviewMode ? "#fbbf24" : "#4b5563"}`,
               borderRadius: 10,
               padding: 14,
               color: "#fff",
@@ -3178,6 +3255,12 @@ export default function App() {
             placeholder="呪文を入力。半角スペースとクォートに注意！"
             autoComplete="off"
           />
+
+          {pendingCorrect && (
+            <div className="answer-pending-note">
+              ✅ 正解入力です。Enterキーで攻撃を確定！
+            </div>
+          )}
 
           {keyHints.length > 0 && (
             <div className="key-hint-panel">
@@ -3457,6 +3540,7 @@ export default function App() {
       {showEvolutionScreen && pendingEvolution && (
         <EvolutionScreen
           evolution={pendingEvolution}
+          phase={evolutionPhase}
           onComplete={handleEvolutionComplete}
         />
       )}
@@ -3473,7 +3557,7 @@ export default function App() {
 }
 
 
-function EvolutionScreen({ evolution, onComplete }) {
+function EvolutionScreen({ evolution, phase, onComplete }) {
   const comments = [
     "進化！！",
     "強くなった！",
@@ -3488,37 +3572,55 @@ function EvolutionScreen({ evolution, onComplete }) {
   ];
 
   return (
-    <div className="evolution-screen">
+    <div className={`evolution-screen evolution-screen--phase-${phase}`}>
       <div className="evolution-screen__bg" />
       <div className="evolution-screen__content">
-        <div className="evolution-screen__monsters" aria-hidden="true">
-          {evolution.fromMonster?.image ? (
-            <img src={evolution.fromMonster.image} alt="" className="evolution-screen__monster evolution-screen__monster--from" />
-          ) : (
-            <span className="evolution-screen__monster evolution-screen__monster--emoji evolution-screen__monster--from">
-              {evolution.fromMonster?.icon || evolution.fromMonster?.sprite || "✨"}
-            </span>
-          )}
-          {evolution.toMonster?.image ? (
-            <img src={evolution.toMonster.image} alt="" className="evolution-screen__monster evolution-screen__monster--to" />
-          ) : (
-            <span className="evolution-screen__monster evolution-screen__monster--emoji evolution-screen__monster--to">
-              {evolution.toMonster?.icon || evolution.toMonster?.sprite || "🌟"}
-            </span>
-          )}
-        </div>
-        <p className="evolution-screen__from">{evolution.fromMonster.name}</p>
-        <p className="evolution-screen__arrow">▼ 進化！ ▼</p>
-        <p className="evolution-screen__to">{evolution.toMonster.name}</p>
-        <p className="evolution-screen__skill">
-          ✨ {evolution.toMonster.assistSkill.name}
-        </p>
-        <p className="evolution-screen__effect">
-          {evolution.toMonster.assistSkill.effect}
-        </p>
-        <button type="button" className="evolution-screen__btn" onClick={onComplete}>
-          次へ進む
-        </button>
+        {phase === 0 && (
+          <>
+            <div className="evolution-screen__single evolution-shake" aria-hidden="true">
+              {evolution.fromMonster?.image ? (
+                <img src={evolution.fromMonster.image} alt="" className="evolution-screen__monster evolution-screen__monster--single" />
+              ) : (
+                <span className="evolution-screen__monster evolution-screen__monster--emoji evolution-screen__monster--single">
+                  {evolution.fromMonster?.icon || evolution.fromMonster?.sprite || "✨"}
+                </span>
+              )}
+            </div>
+            <p className="evolution-screen__from">おや？{evolution.fromMonster.name}の様子が…？</p>
+          </>
+        )}
+
+        {phase === 1 && (
+          <>
+            <div className="evolution-screen__flash-core">✨</div>
+            <p className="evolution-screen__arrow">光があふれている！</p>
+          </>
+        )}
+
+        {phase === 2 && (
+          <>
+            <div className="evolution-screen__single" aria-hidden="true">
+              {evolution.toMonster?.image ? (
+                <img src={evolution.toMonster.image} alt="" className="evolution-screen__monster evolution-screen__monster--single evolution-screen__monster--complete" />
+              ) : (
+                <span className="evolution-screen__monster evolution-screen__monster--emoji evolution-screen__monster--single evolution-screen__monster--complete">
+                  {evolution.toMonster?.icon || evolution.toMonster?.sprite || "🌟"}
+                </span>
+              )}
+            </div>
+            <p className="evolution-screen__arrow">▼ 進化！ ▼</p>
+            <p className="evolution-screen__to">{evolution.toMonster.name}</p>
+            <p className="evolution-screen__skill">
+              ✨ {evolution.toMonster.assistSkill.name}
+            </p>
+            <p className="evolution-screen__effect">
+              {evolution.toMonster.assistSkill.effect}
+            </p>
+            <button type="button" className="evolution-screen__btn" onClick={onComplete}>
+              次へ進む
+            </button>
+          </>
+        )}
       </div>
       <div className="niconico-comments" aria-hidden="true">
         {comments.map((comment, index) => (
@@ -4748,7 +4850,6 @@ function CompanionPanel({ companions, activeCompanionId, companionData, assistGa
               const skillCount = getCompanionSkillCount({ companionData }, monster.id);
               const nextEvolutionId = getEvolvedId(monster.id);
               const threshold = getEvolutionThreshold(monster.id);
-              const remaining = nextEvolutionId ? Math.max(0, threshold - skillCount) : 0;
 
               return (
                 <button
@@ -4768,9 +4869,16 @@ function CompanionPanel({ companions, activeCompanionId, companionData, assistGa
                   <strong>{monster.name}</strong>
                   <small>{monster.assistSkill.name}：{monster.assistSkill.effect}</small>
                   <small>
-                    {nextEvolutionId
-                      ? `進化まであと ${remaining} 回発動`
-                      : "最終進化済み / 進化なし"}
+                    {nextEvolutionId ? (
+                      <span className="evolution-progress">
+                        <span className="evolution-progress__bar">
+                          <span style={{ width: `${Math.min(100, (skillCount / threshold) * 100)}%` }} />
+                        </span>
+                        <span className="evolution-progress__label">
+                          {getEvolutionHint(skillCount, threshold)}
+                        </span>
+                      </span>
+                    ) : "最終進化済み ✨"}
                   </small>
                 </button>
               );
