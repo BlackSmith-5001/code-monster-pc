@@ -236,7 +236,7 @@ export const CODE_BANK = [
   },
   {
     level: 3,
-    code: "if flag == True:",
+    code: "if flag:",
     hint: "flagがTrueか判定",
     details:
       "flagがTrueかどうかを調べます。ここで出てくる == は『等しいか比べる』という意味です。= は代入、== は比較。そっくりだけど役割が違います。双子キャラだけど片方は荷物係、片方は審判です。",
@@ -3538,7 +3538,7 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_006",
     "level": 3,
-    "correct": "if is_boss == True:",
+    "correct": "if is_boss:",
     "normalHint": "もし is_boss が True（ON）なら",
     "hard": {
       "buggy": "if is_boss == true:",
@@ -3547,7 +3547,7 @@ export const CODE_BANK = [
       "hint": "Pythonの True は、最初の T を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。真偽値は True / False のように先頭を大文字で書きます。"
     },
-    "details": "この問題では `if is_boss == True:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if is_boss:` を入力して、Pythonの基本ルールを確認します。真偽値はそのまま条件にできます。",
     "terms": [
       [
         "True",
@@ -3699,8 +3699,8 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_013",
     "level": 3,
-    "correct": "if is_clear == False:",
-    "normalHint": "もし is_clear が False（OFF）と等しければ",
+    "correct": "if not is_clear:",
+    "normalHint": "もし is_clear が False（OFF）なら",
     "hard": {
       "buggy": "if is_clear == false:",
       "bugName": "false小文字バグ",
@@ -3708,7 +3708,7 @@ export const CODE_BANK = [
       "hint": "Pythonの False は、最初の F を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。falseではなくFalseと書きます。"
     },
-    "details": "この問題では `if is_clear == False:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if not is_clear:` を入力して、Pythonの基本ルールを確認します。Falseの条件は not を使うと自然です。",
     "terms": [
       [
         "False",
@@ -3791,16 +3791,16 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_017",
     "level": 3,
-    "correct": "if is_cursed == False:",
-    "normalHint": "もし is_cursed が False（OFF）と等しければ",
+    "correct": "if not is_cursed:",
+    "normalHint": "もし is_cursed が False（OFF）なら",
     "hard": {
-      "buggy": "if is_cursed == False",
+      "buggy": "if not is_cursed",
       "bugName": "コロン忘れバグ",
       "bugType": "missing_colon",
       "hint": "if文の最後には、必ず半角コロン（:）が必要です。",
       "explanation": "Pythonのif文では、条件の最後に : を付けます。全角の ： ではなく半角の : を使いましょう。"
     },
-    "details": "この問題では `if is_cursed == False:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if not is_cursed:` を入力して、Pythonの基本ルールを確認します。Falseの条件は not を使うと自然です。",
     "terms": [
       [
         "コロン（:）",
@@ -3906,8 +3906,8 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_022",
     "level": 3,
-    "correct": "if is_active == True:",
-    "normalHint": "もし is_active が True（ON）と等しければ",
+    "correct": "if is_active:",
+    "normalHint": "もし is_active が True（ON）なら",
     "hard": {
       "buggy": "if is_active == true:",
       "bugName": "true小文字バグ",
@@ -3915,7 +3915,7 @@ export const CODE_BANK = [
       "hint": "Pythonの True は、最初の T を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。真偽値は True / False のように先頭を大文字で書きます。"
     },
-    "details": "この問題では `if is_active == True:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if is_active:` を入力して、Pythonの基本ルールを確認します。真偽値はそのまま条件にできます。",
     "terms": [
       [
         "True",
@@ -4044,8 +4044,8 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_028",
     "level": 3,
-    "correct": "if is_dead == False:",
-    "normalHint": "もし is_dead が False（OFF）と等しければ",
+    "correct": "if not is_dead:",
+    "normalHint": "もし is_dead が False（OFF）なら",
     "hard": {
       "buggy": "if is_dead == false:",
       "bugName": "false小文字バグ",
@@ -4053,7 +4053,7 @@ export const CODE_BANK = [
       "hint": "Pythonの False は、最初の F を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。falseではなくFalseと書きます。"
     },
-    "details": "この問題では `if is_dead == False:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if not is_dead:` を入力して、Pythonの基本ルールを確認します。Falseの条件は not を使うと自然です。",
     "terms": [
       [
         "False",
@@ -4159,8 +4159,8 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_033",
     "level": 3,
-    "correct": "if quest_clear == True:",
-    "normalHint": "もし quest_clear が True（ON）と等しければ",
+    "correct": "if quest_clear:",
+    "normalHint": "もし quest_clear が True（ON）なら",
     "hard": {
       "buggy": "if quest_clear == true:",
       "bugName": "true小文字バグ",
@@ -4168,7 +4168,7 @@ export const CODE_BANK = [
       "hint": "Pythonの True は、最初の T を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。真偽値は True / False のように先頭を大文字で書きます。"
     },
-    "details": "この問題では `if quest_clear == True:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if quest_clear:` を入力して、Pythonの基本ルールを確認します。真偽値はそのまま条件にできます。",
     "terms": [
       [
         "True",
@@ -4297,8 +4297,8 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_039",
     "level": 3,
-    "correct": "if is_poisoned == False:",
-    "normalHint": "もし is_poisoned が False（OFF）と等しければ",
+    "correct": "if not is_poisoned:",
+    "normalHint": "もし is_poisoned が False（OFF）なら",
     "hard": {
       "buggy": "if is_poisoned == false:",
       "bugName": "false小文字バグ",
@@ -4306,7 +4306,7 @@ export const CODE_BANK = [
       "hint": "Pythonの False は、最初の F を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。falseではなくFalseと書きます。"
     },
-    "details": "この問題では `if is_poisoned == False:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if not is_poisoned:` を入力して、Pythonの基本ルールを確認します。Falseの条件は not を使うと自然です。",
     "terms": [
       [
         "False",
@@ -4412,8 +4412,8 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_044",
     "level": 3,
-    "correct": "if is_defending == True:",
-    "normalHint": "もし is_defending が True（ON）と等しければ",
+    "correct": "if is_defending:",
+    "normalHint": "もし is_defending が True（ON）なら",
     "hard": {
       "buggy": "if is_defending == true:",
       "bugName": "true小文字バグ",
@@ -4421,7 +4421,7 @@ export const CODE_BANK = [
       "hint": "Pythonの True は、最初の T を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。真偽値は True / False のように先頭を大文字で書きます。"
     },
-    "details": "この問題では `if is_defending == True:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if is_defending:` を入力して、Pythonの基本ルールを確認します。真偽値はそのまま条件にできます。",
     "terms": [
       [
         "True",
@@ -4504,8 +4504,8 @@ export const CODE_BANK = [
   {
     "id": "lv4_add_048",
     "level": 3,
-    "correct": "if is_gameover == False:",
-    "normalHint": "もし is_gameover が False（OFF）と等しければ",
+    "correct": "if not is_gameover:",
+    "normalHint": "もし is_gameover が False（OFF）なら",
     "hard": {
       "buggy": "if is_gameover == false:",
       "bugName": "false小文字バグ",
@@ -4513,7 +4513,7 @@ export const CODE_BANK = [
       "hint": "Pythonの False は、最初の F を大文字にします。",
       "explanation": "Pythonは大文字小文字を区別します。falseではなくFalseと書きます。"
     },
-    "details": "この問題では `if is_gameover == False:` を入力して、Pythonの基本ルールを確認します。記号・空白・クォート・大文字小文字を丁寧に見分けましょう。",
+    "details": "この問題では `if not is_gameover:` を入力して、Pythonの基本ルールを確認します。Falseの条件は not を使うと自然です。",
     "terms": [
       [
         "False",
@@ -4842,8 +4842,8 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if is_ok == True:",
-    "hint": "is_okがTrueと等しければ",
+    "code": "if is_ok:",
+    "hint": "is_okがTrueなら",
     "details": "Trueは「真（はい）」を表す特別な言葉です。文字列ではないのでクォートは不要です。",
     "terms": [
       [
@@ -4927,8 +4927,8 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if id != 'admin':",
-    "hint": "IDがadmin以外なら",
+    "code": "if user_id != 'admin':",
+    "hint": "user_idがadmin以外なら",
     "details": "管理者以外のユーザーを弾くような処理です。",
     "terms": [],
     "tips": [
@@ -5502,7 +5502,7 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if is_alive == True:",
+    "code": "if is_alive:",
     "hint": "is_aliveがTrueなら",
     "details": "True（真）は大文字の T から始めます。クォートは不要です。",
     "terms": [
@@ -5517,7 +5517,7 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if poison == False:",
+    "code": "if not poison:",
     "hint": "poisonがFalseなら",
     "details": "False（偽）は大文字の F から始めます。",
     "terms": [
@@ -5622,7 +5622,7 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if ready == True:",
+    "code": "if ready:",
     "hint": "準備OKなら",
     "details": "真偽値との比較です。true と小文字で書くとエラーになります。",
     "terms": [
@@ -5637,7 +5637,7 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if is_boss == False:",
+    "code": "if not is_boss:",
     "hint": "ボスではないなら",
     "details": "false と小文字で書くと変数と間違えられます。",
     "terms": [
@@ -5772,8 +5772,8 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if type != 'Fire':",
-    "hint": "属性がFireではない",
+    "code": "if kind != 'Fire':",
+    "hint": "kindがFireではない",
     "details": "Fire以外のすべての時にTrueになります。",
     "terms": [
       [
@@ -5907,8 +5907,8 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if len > 5:",
-    "hint": "lenが5より大きい",
+    "code": "if length > 5:",
+    "hint": "lengthが5より大きい",
     "details": "長さが5を超えているかチェックします。",
     "terms": [
       [
@@ -6552,8 +6552,8 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if is_clear == True:",
-    "hint": "is_clearがTrueと等しければ",
+    "code": "if is_clear:",
+    "hint": "is_clearがTrueなら",
     "details": "クリアフラグが立っているかの確認です。",
     "terms": [
       [
@@ -6972,8 +6972,8 @@ export const CODE_BANK = [
   },
   {
     "level": 3,
-    "code": "if is_ready == True:",
-    "hint": "is_readyがTrueと等しければ",
+    "code": "if is_ready:",
+    "hint": "is_readyがTrueなら",
     "details": "準備完了フラグがONかどうかの確認です。",
     "terms": [
       [
@@ -6982,13 +6982,13 @@ export const CODE_BANK = [
       ]
     ],
     "tips": [
-      "== True: と打ちます。"
+      "変数名だけでTrueか確認できます。"
     ]
   },
   {
     "level": 3,
-    "code": "if is_poison == False:",
-    "hint": "is_poisonがFalseと等しければ",
+    "code": "if not is_poison:",
+    "hint": "is_poisonがFalseなら",
     "details": "毒状態ではないかの確認です。",
     "terms": [
       [
@@ -6997,7 +6997,7 @@ export const CODE_BANK = [
       ]
     ],
     "tips": [
-      "== False: と打ちます。"
+      "not を付けるとFalseか確認できます。"
     ]
   },
   {
