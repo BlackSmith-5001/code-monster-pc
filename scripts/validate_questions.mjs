@@ -27,17 +27,38 @@ for (const q of CODE_BANK) {
     warnings++;
   }
 
-  if (/==\s*(True|False)/.test(correct)) {
-    console.warn(`[WARN] ${id}: == True/False パターン（Pythonアンチパターン） → "${correct}"`);
+  if (/[=!]=\s*(True|False)/.test(correct)) {
+    console.warn(`[WARN] ${id}: == / != True/False パターン（Pythonアンチパターン） → "${correct}"`);
     warnings++;
   }
 
   for (const builtin of builtins) {
-    const builtinPattern = new RegExp(`^${builtin}\\s*=|if\\s+${builtin}\\s*[<>=!]`);
+    const builtinPattern = new RegExp(`^${builtin}\\s*=[^=]|if\\s+${builtin}\\s*[<>=!]`);
     if (builtinPattern.test(correct)) {
       console.warn(`[WARN] ${id}: 組み込み名 "${builtin}" を変数として使用 → "${correct}"`);
       warnings++;
     }
+  }
+
+  // Python予約語を変数として使用（SyntaxErrorになる）
+  // True/False/None は右辺値として正当なので対象外
+  const keywords = ["def", "class", "return", "import", "from", "pass", "for", "while", "in", "is", "and", "or", "not", "if", "else", "elif", "lambda", "global", "del", "try", "except"];
+  for (const kw of keywords) {
+    const kwPattern = new RegExp(
+      `(^|[\\s(])${kw}\\s*=[^=]` +      // 予約語への代入: def = 5
+      `|[-+*/%]\\s*${kw}([\\s:)]|$)` +  // 算術の項に予約語: atk - def
+      `|if\\s+${kw}\\s*[<>=!]`          // 比較の左辺に予約語: if def <= atk
+    );
+    if (kwPattern.test(correct)) {
+      console.warn(`[WARN] ${id}: 予約語 "${kw}" を変数として使用（SyntaxError） → "${correct}"`);
+      warnings++;
+    }
+  }
+
+  // ゼロ除算リテラル
+  if (/[/%]\s*0([\s]|$)/.test(correct)) {
+    console.warn(`[WARN] ${id}: ゼロ除算になるコード → "${correct}"`);
+    warnings++;
   }
 
   const level = q.level ?? 0;

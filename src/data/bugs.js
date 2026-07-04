@@ -147,6 +147,18 @@ export const BUG_LIBRARY = {
     masterComment: "全角記号は透明な落とし穴。見えているのに落ちる。",
     stages: "全レベル",
   },
+
+  zenkaku_symbol: {
+    no: "014",
+    name: "全角記号バグ",
+    icon: "🔣",
+    color: "#fb923c",
+    symptom: "＋ － ％ ： ！ ＞ ＜ （ ） など、コードの記号が全角になっている。",
+    fix: "Pythonの記号はすべて半角で入力します。「半角/全角」キーで半角英数モードに切り替えましょう。",
+    beginnerTip: "全角記号は半角記号のそっくりさんです。見た目はほぼ同じでも、Pythonには全く別の文字に見えています。",
+    masterComment: "そっくりさんに騙されるな。本物はいつも少しだけ細い。",
+    stages: "全レベル",
+  },
 };
 
 export function getBugInfo(bugType) {
