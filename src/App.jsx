@@ -13,6 +13,7 @@ import {
   getBugBookEntries,
   MONSTER_COMMENTS_MAP,
 } from "./data";
+import { SHISHO_BOYAKI, EPIC_BOYAKI } from "./data/boyaki";
 import { Gauge, MonsterPortrait, StatusCard } from "./components/BattleWidgets";
 
 const SAVE_KEY = "typeOfLegendSave";
@@ -1303,6 +1304,9 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(() => save.soundEnabled);
   const [flash, setFlash] = useState(null);
   const [monsterComment, setMonsterComment] = useState(null);
+  const [shishoBoyaki, setShishoBoyaki] = useState(null);
+  const [wrongStreak, setWrongStreak] = useState(0);
+  const [timeupStreak, setTimeupStreak] = useState(0);
   const [screenFade, setScreenFade] = useState(null);
   const [recentTitleUnlocks, setRecentTitleUnlocks] = useState([]);
   const [showDetails, setShowDetails] = useState(false);
@@ -1325,6 +1329,7 @@ export default function App() {
   const isComposingRef = useRef(false);
   const zenkakuWarningShownRef = useRef(false);
   const typingWrongMessageShownRef = useRef(false);
+  const boyakiShownForQuestionRef = useRef(false);
 
   const stage = LEVELS[selectedLevel];
   const playerLevelInfo = getLevelInfoFromExp(save.exp);
@@ -1458,12 +1463,21 @@ export default function App() {
     setDebugHintOpen(false);
     zenkakuWarningShownRef.current = false;
     typingWrongMessageShownRef.current = false;
+    boyakiShownForQuestionRef.current = false;
   }, [current?.id, questionCount, enemy?.id, selectedMode]);
 
   const prevIsTypingWrongRef = useRef(false);
   useEffect(() => {
     if (isTypingWrong && !prevIsTypingWrongRef.current && isBattle) {
       triggerMonsterComment(enemy, "wrong");
+      setWrongStreak((currentStreak) => {
+        const nextStreak = currentStreak + 1;
+        if (nextStreak >= 2 && !boyakiShownForQuestionRef.current) {
+          boyakiShownForQuestionRef.current = true;
+          triggerShishoBoyaki(SHISHO_BOYAKI.wrongStreak, 0.4);
+        }
+        return nextStreak;
+      });
       if (!typingWrongMessageShownRef.current) {
         setBattleLog("🔙 赤くなったところまでバックスペースで戻って直そう。Escで全消しもできるよ。");
         typingWrongMessageShownRef.current = true;
@@ -1731,6 +1745,7 @@ export default function App() {
     setEncounterDeck(newEncounterDeck);
     setEnemy(newEnemy);
     triggerMonsterComment(newEnemy, "appear");
+    triggerEpicBoyaki(newEnemy);
     setCurrent(firstQuestion);
     setPlayerHp(100);
     setCombo(0);
@@ -1738,6 +1753,8 @@ export default function App() {
     setTyped("");
     setElapsed(0);
     setReviewMode(false);
+    setWrongStreak(0);
+    setTimeupStreak(0);
     resetEffectChanceState();
     resetAssistState();
     setStarted(true);
@@ -1830,6 +1847,20 @@ export default function App() {
     if (!data?.[eventType]) return;
     const top = Math.floor(Math.random() * 46) + 20;
     setMonsterComment({ text: data[eventType], icon: enemyObj.icon || enemyObj.sprite || "🐉", key: Date.now(), top, eventType });
+  }
+
+  function triggerShishoBoyaki(lines, chance) {
+    if (!lines?.length) return false;
+    if (Math.random() > chance) return false;
+    const text = lines[Math.floor(Math.random() * lines.length)];
+    const top = Math.floor(Math.random() * 20) + 68;
+    setShishoBoyaki({ text, key: Date.now(), top });
+    return true;
+  }
+
+  function triggerEpicBoyaki(enemyObj) {
+    if (enemyObj?.rarity !== "epic") return;
+    triggerShishoBoyaki(EPIC_BOYAKI[enemyObj.id] || EPIC_BOYAKI.generic, 0.6);
   }
 
   function canUseEffectChance() {
@@ -2018,6 +2049,7 @@ export default function App() {
     setShowEvolutionScreen(false);
     setEvolutionPhase(0);
     setPendingCorrect(false);
+    setWrongStreak(0);
   }
 
   function triggerAssist(activeCompanion, currentCombo) {
@@ -2183,6 +2215,13 @@ export default function App() {
 
     setPlayerHp(nextHp);
     setCombo(0);
+    setTimeupStreak((currentStreak) => {
+      const nextStreak = currentStreak + 1;
+      if (nextStreak >= 2) {
+        triggerShishoBoyaki(SHISHO_BOYAKI.timeupStreak, 0.5);
+      }
+      return nextStreak;
+    });
     if (effectTimeBonus > 0) {
       setEffectTimeBonus(0);
     }
@@ -2239,6 +2278,8 @@ export default function App() {
 
     clearInterval(timerRef.current);
     setPendingCorrect(false);
+    setWrongStreak(0);
+    setTimeupStreak(0);
 
     const wasReview = reviewMode;
     const isCritical = remaining >= Math.ceil(TIME_LIMIT * 0.6) || combo >= 2;
@@ -2481,6 +2522,7 @@ export default function App() {
 
     setEnemy(newEnemy);
     triggerMonsterComment(newEnemy, "appear");
+    triggerEpicBoyaki(newEnemy);
     setCurrent(nextQuestion);
     setFinished(false);
     setResultType(null);
@@ -3196,6 +3238,16 @@ export default function App() {
               style={{ background: LEVELS[selectedLevel]?.color || "#3b82f6", top: `${monsterComment.top}%` }}
             >
               {monsterComment.icon} {monsterComment.text}
+            </div>
+          )}
+
+          {shishoBoyaki && (
+            <div
+              key={shishoBoyaki.key}
+              className="shisho-boyaki-flow"
+              style={{ top: `${shishoBoyaki.top}%` }}
+            >
+              🧙‍♂️ {shishoBoyaki.text}
             </div>
           )}
 

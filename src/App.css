@@ -2470,6 +2470,30 @@
   border-radius: 6px;
 }
 
+.shisho-boyaki-flow {
+  position: fixed;
+  right: -40%;
+  background: rgba(120, 85, 40, 0.88);
+  color: #fde68a;
+  font-size: 0.95rem;
+  font-style: italic;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #d4a94f;
+  white-space: nowrap;
+  z-index: 60;
+  pointer-events: none;
+  animation: boyakiFlow 9s linear forwards;
+  box-shadow: 0 0 16px rgba(120, 85, 40, 0.32);
+}
+
+@keyframes boyakiFlow {
+  from { right: -40%; opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  to   { right: 105%; opacity: 0; }
+}
+
 /* タイトル下部 モンスターパレード */
 .monster-parade {
   position: relative;
