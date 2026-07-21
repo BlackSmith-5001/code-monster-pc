@@ -18,7 +18,7 @@ export const ENEMY_VARIANTS = [
     "password": "AKA_SLIME",
     "icon": "🟣",
     "sprite": "🟣",
-    "hp": 48,
+    "hp": 70,
     "exp": 14
   },
   {
@@ -36,7 +36,7 @@ export const ENEMY_VARIANTS = [
     "password": "AO_SLIME",
     "icon": "💧",
     "sprite": "💧",
-    "hp": 49,
+    "hp": 71,
     "exp": 15
   },
   {
@@ -54,7 +54,7 @@ export const ENEMY_VARIANTS = [
     "password": "MIDORI_SLIME",
     "icon": "🌿",
     "sprite": "🌿",
-    "hp": 50,
+    "hp": 73,
     "exp": 15
   },
   {
@@ -72,7 +72,7 @@ export const ENEMY_VARIANTS = [
     "password": "KIIRO_SLIME",
     "icon": "🟡",
     "sprite": "🟡",
-    "hp": 51,
+    "hp": 74,
     "exp": 16
   },
   {
@@ -90,7 +90,7 @@ export const ENEMY_VARIANTS = [
     "password": "MURASAKI_SLIME",
     "icon": "🟣",
     "sprite": "🟣",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -109,7 +109,7 @@ export const ENEMY_VARIANTS = [
     "password": "RAINBOW_SLIME",
     "icon": "🌈",
     "sprite": "🌈",
-    "hp": 92,
+    "hp": 133,
     "exp": 40
   },
   {
@@ -128,7 +128,7 @@ export const ENEMY_VARIANTS = [
     "password": "KOKKO",
     "icon": "🐤",
     "sprite": "🐤",
-    "hp": 50,
+    "hp": 73,
     "exp": 15
   },
   {
@@ -146,7 +146,7 @@ export const ENEMY_VARIANTS = [
     "password": "SPACE_MAN",
     "icon": "🧑‍🚀",
     "sprite": "🧑‍🚀",
-    "hp": 132,
+    "hp": 191,
     "exp": 66
   },
   {
@@ -164,7 +164,7 @@ export const ENEMY_VARIANTS = [
     "password": "KEYBOARD_DRAGON",
     "icon": "🐉",
     "sprite": "🐉",
-    "hp": 136,
+    "hp": 197,
     "exp": 68
   },
   {
@@ -183,7 +183,7 @@ export const ENEMY_VARIANTS = [
     "password": "MOUSE",
     "icon": "🖱️",
     "sprite": "🖱️",
-    "hp": 90,
+    "hp": 131,
     "exp": 39
   },
   {
@@ -202,7 +202,7 @@ export const ENEMY_VARIANTS = [
     "password": "MANDRAGORA",
     "icon": "🌱",
     "sprite": "🌱",
-    "hp": 53,
+    "hp": 77,
     "exp": 16
   },
   {
@@ -220,7 +220,7 @@ export const ENEMY_VARIANTS = [
     "password": "ENTER_DRAGON",
     "icon": "🐉",
     "sprite": "🐉",
-    "hp": 138,
+    "hp": 200,
     "exp": 70
   },
   {
@@ -239,7 +239,7 @@ export const ENEMY_VARIANTS = [
     "password": "SPACE_SLIME",
     "icon": "🫧",
     "sprite": "🫧",
-    "hp": 54,
+    "hp": 78,
     "exp": 17
   },
   {
@@ -257,7 +257,7 @@ export const ENEMY_VARIANTS = [
     "password": "QUOTE_BAT",
     "icon": "🦇",
     "sprite": "🦇",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -276,7 +276,7 @@ export const ENEMY_VARIANTS = [
     "password": "COLON_GHOST",
     "icon": "👻",
     "sprite": "👻",
-    "hp": 70,
+    "hp": 102,
     "exp": 26
   },
   {
@@ -296,7 +296,7 @@ export const ENEMY_VARIANTS = [
     "password": "EQUAL_SLIME",
     "icon": "🫧",
     "sprite": "🫧",
-    "hp": 72,
+    "hp": 104,
     "exp": 27
   },
   {
@@ -315,7 +315,7 @@ export const ENEMY_VARIANTS = [
     "password": "TRUE_FAIRY",
     "icon": "🧚",
     "sprite": "🧚",
-    "hp": 94,
+    "hp": 136,
     "exp": 41
   },
   {
@@ -333,7 +333,7 @@ export const ENEMY_VARIANTS = [
     "password": "ASTERISK_MUSH",
     "icon": "🍄",
     "sprite": "🍄",
-    "hp": 96,
+    "hp": 139,
     "exp": 42
   },
   {
@@ -353,7 +353,7 @@ export const ENEMY_VARIANTS = [
     "password": "SLASH_SNAIL",
     "icon": "🐌",
     "sprite": "🐌",
-    "hp": 98,
+    "hp": 142,
     "exp": 43
   },
   {
@@ -371,7 +371,7 @@ export const ENEMY_VARIANTS = [
     "password": "CRATER_DRAKE",
     "icon": "🐲",
     "sprite": "🐲",
-    "hp": 140,
+    "hp": 203,
     "exp": 70
   },
   {
@@ -389,7 +389,7 @@ export const ENEMY_VARIANTS = [
     "password": "INDENT_OOZE",
     "icon": "🫠",
     "sprite": "🫠",
-    "hp": 142,
+    "hp": 206,
     "exp": 71
   },
   {
@@ -407,7 +407,7 @@ export const ENEMY_VARIANTS = [
     "password": "MISSPELLAGON",
     "icon": "🐉",
     "sprite": "🐉",
-    "hp": 130,
+    "hp": 189,
     "exp": 64
   },
   {
@@ -425,7 +425,7 @@ export const ENEMY_VARIANTS = [
     "password": "FULLWIDE_OGRE",
     "icon": "👹",
     "sprite": "👹",
-    "hp": 74,
+    "hp": 107,
     "exp": 28
   },
   {
@@ -444,7 +444,7 @@ export const ENEMY_VARIANTS = [
     "password": "QUOTE_EATER",
     "icon": "🦎",
     "sprite": "🦎",
-    "hp": 54,
+    "hp": 78,
     "exp": 17
   },
   {
@@ -462,7 +462,7 @@ export const ENEMY_VARIANTS = [
     "password": "COLON_COBRA",
     "icon": "🐍",
     "sprite": "🐍",
-    "hp": 55,
+    "hp": 80,
     "exp": 17
   },
   {
@@ -480,7 +480,7 @@ export const ENEMY_VARIANTS = [
     "password": "DOUBLE_EQUAL_KNIGHT",
     "icon": "🛡️",
     "sprite": "🛡️",
-    "hp": 100,
+    "hp": 145,
     "exp": 44
   },
   {
@@ -499,7 +499,7 @@ export const ENEMY_VARIANTS = [
     "password": "FALSE_WISP",
     "icon": "🔥",
     "sprite": "🔥",
-    "hp": 68,
+    "hp": 99,
     "exp": 25
   },
   {
@@ -517,7 +517,7 @@ export const ENEMY_VARIANTS = [
     "password": "TRUE_ANGEL",
     "icon": "👼",
     "sprite": "👼",
-    "hp": 102,
+    "hp": 148,
     "exp": 45
   },
   {
@@ -535,7 +535,7 @@ export const ENEMY_VARIANTS = [
     "password": "ZERO_DIVIDER",
     "icon": "🐲",
     "sprite": "🐲",
-    "hp": 148,
+    "hp": 215,
     "exp": 74
   },
   {
@@ -553,7 +553,7 @@ export const ENEMY_VARIANTS = [
     "password": "PAREN_GOLEM",
     "icon": "🗿",
     "sprite": "🗿",
-    "hp": 56,
+    "hp": 81,
     "exp": 18
   },
   {
@@ -571,7 +571,7 @@ export const ENEMY_VARIANTS = [
     "password": "TAB_PHANTOM",
     "icon": "👻",
     "sprite": "👻",
-    "hp": 76,
+    "hp": 110,
     "exp": 29
   },
   {
@@ -589,7 +589,7 @@ export const ENEMY_VARIANTS = [
     "password": "LINEAGE_WORM",
     "icon": "🐛",
     "sprite": "🐛",
-    "hp": 99,
+    "hp": 144,
     "exp": 43
   },
   {
@@ -608,7 +608,7 @@ export const ENEMY_VARIANTS = [
     "password": "HALFSPACE_RABBIT",
     "icon": "🐰",
     "sprite": "🐰",
-    "hp": 55,
+    "hp": 80,
     "exp": 17
   },
   {
@@ -627,7 +627,7 @@ export const ENEMY_VARIANTS = [
     "password": "OVERWRITE_ORC",
     "icon": "👹",
     "sprite": "👹",
-    "hp": 74,
+    "hp": 107,
     "exp": 28
   },
   {
@@ -645,7 +645,7 @@ export const ENEMY_VARIANTS = [
     "password": "NUMBER_MIMIC",
     "icon": "🎁",
     "sprite": "🎁",
-    "hp": 100,
+    "hp": 145,
     "exp": 44
   },
   {
@@ -665,7 +665,7 @@ export const ENEMY_VARIANTS = [
     "password": "STRING_SNAKE",
     "icon": "🐍",
     "sprite": "🐍",
-    "hp": 72,
+    "hp": 104,
     "exp": 27
   },
   {
@@ -685,7 +685,7 @@ export const ENEMY_VARIANTS = [
     "password": "PLUS_GOBLIN",
     "icon": "👺",
     "sprite": "👺",
-    "hp": 56,
+    "hp": 81,
     "exp": 18
   },
   {
@@ -703,7 +703,7 @@ export const ENEMY_VARIANTS = [
     "password": "COMMA_CROW",
     "icon": "🐦",
     "sprite": "🐦",
-    "hp": 53,
+    "hp": 77,
     "exp": 16
   },
   {
@@ -721,7 +721,7 @@ export const ENEMY_VARIANTS = [
     "password": "BRACKET_SPIDER",
     "icon": "🕷️",
     "sprite": "🕷️",
-    "hp": 76,
+    "hp": 110,
     "exp": 29
   },
   {
@@ -741,7 +741,7 @@ export const ENEMY_VARIANTS = [
     "password": "KAKKO_CRAB",
     "icon": "🦀",
     "sprite": "🦀",
-    "hp": 54,
+    "hp": 78,
     "exp": 17
   },
   {
@@ -759,7 +759,7 @@ export const ENEMY_VARIANTS = [
     "password": "DENT_MOLE",
     "icon": "⛏️",
     "sprite": "⛏️",
-    "hp": 55,
+    "hp": 80,
     "exp": 17
   },
   {
@@ -777,7 +777,7 @@ export const ENEMY_VARIANTS = [
     "password": "OUTDENT_MOLE",
     "icon": "⛏️",
     "sprite": "⛏️",
-    "hp": 56,
+    "hp": 81,
     "exp": 18
   },
   {
@@ -796,7 +796,7 @@ export const ENEMY_VARIANTS = [
     "password": "TYPO_KOBOLD",
     "icon": "👺",
     "sprite": "👺",
-    "hp": 54,
+    "hp": 78,
     "exp": 17
   },
   {
@@ -815,7 +815,7 @@ export const ENEMY_VARIANTS = [
     "password": "CAMEL_WOLF",
     "icon": "🐺",
     "sprite": "🐺",
-    "hp": 74,
+    "hp": 107,
     "exp": 28
   },
   {
@@ -834,7 +834,7 @@ export const ENEMY_VARIANTS = [
     "password": "UNDER_BIRD",
     "icon": "🐦",
     "sprite": "🐦",
-    "hp": 53,
+    "hp": 77,
     "exp": 16
   },
   {
@@ -852,7 +852,7 @@ export const ENEMY_VARIANTS = [
     "password": "RETURN_WRAITH",
     "icon": "👻",
     "sprite": "👻",
-    "hp": 101,
+    "hp": 146,
     "exp": 45
   },
   {
@@ -870,7 +870,7 @@ export const ENEMY_VARIANTS = [
     "password": "NONE_GOLEM",
     "icon": "🗿",
     "sprite": "🗿",
-    "hp": 100,
+    "hp": 145,
     "exp": 44
   },
   {
@@ -889,7 +889,7 @@ export const ENEMY_VARIANTS = [
     "password": "BOOL_BEE",
     "icon": "🐝",
     "sprite": "🐝",
-    "hp": 55,
+    "hp": 80,
     "exp": 17
   },
   {
@@ -907,7 +907,7 @@ export const ENEMY_VARIANTS = [
     "password": "LOOP_WYVERN",
     "icon": "🐉",
     "sprite": "🐉",
-    "hp": 146,
+    "hp": 212,
     "exp": 73
   },
   {
@@ -925,7 +925,7 @@ export const ENEMY_VARIANTS = [
     "password": "ERROR_COLLECTOR",
     "icon": "🧬",
     "sprite": "🧬",
-    "hp": 150,
+    "hp": 218,
     "exp": 75
   },
   {
@@ -944,7 +944,7 @@ export const ENEMY_VARIANTS = [
     "password": "BUG_LEAF",
     "icon": "🍃",
     "sprite": "🍃",
-    "hp": 50,
+    "hp": 73,
     "exp": 15
   },
   {
@@ -963,7 +963,7 @@ export const ENEMY_VARIANTS = [
     "password": "SNIPPET_SHEEP",
     "icon": "🐑",
     "sprite": "🐑",
-    "hp": 51,
+    "hp": 74,
     "exp": 16
   },
   {
@@ -982,7 +982,7 @@ export const ENEMY_VARIANTS = [
     "password": "SEMICOLON_FERRET",
     "icon": "❔",
     "sprite": "❔",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -1000,7 +1000,7 @@ export const ENEMY_VARIANTS = [
     "password": "DOUBLE_QUOTE_RABBIT",
     "icon": "🐰",
     "sprite": "🐰",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -1019,7 +1019,7 @@ export const ENEMY_VARIANTS = [
     "password": "DOT_SQUIRREL",
     "icon": "•",
     "sprite": "•",
-    "hp": 53,
+    "hp": 77,
     "exp": 16
   },
   {
@@ -1037,7 +1037,7 @@ export const ENEMY_VARIANTS = [
     "password": "CASE_MOTH",
     "icon": "🦋",
     "sprite": "🦋",
-    "hp": 68,
+    "hp": 99,
     "exp": 25
   },
   {
@@ -1055,7 +1055,7 @@ export const ENEMY_VARIANTS = [
     "password": "NAME_TAG_WISP",
     "icon": "🔥",
     "sprite": "🔥",
-    "hp": 70,
+    "hp": 102,
     "exp": 26
   },
   {
@@ -1073,7 +1073,7 @@ export const ENEMY_VARIANTS = [
     "password": "CONSOLE_CRAB",
     "icon": "🦀",
     "sprite": "🦀",
-    "hp": 72,
+    "hp": 104,
     "exp": 27
   },
   {
@@ -1091,7 +1091,7 @@ export const ENEMY_VARIANTS = [
     "password": "COMMENT_FOX",
     "icon": "🦊",
     "sprite": "🦊",
-    "hp": 92,
+    "hp": 133,
     "exp": 40
   },
   {
@@ -1109,7 +1109,7 @@ export const ENEMY_VARIANTS = [
     "password": "SYNTAX_PEGASUS",
     "icon": "🪽",
     "sprite": "🪽",
-    "hp": 128,
+    "hp": 186,
     "exp": 63
   },
   {
@@ -1127,7 +1127,7 @@ export const ENEMY_VARIANTS = [
     "password": "CURSOR_PUDDING",
     "icon": "🍮",
     "sprite": "🍮",
-    "hp": 50,
+    "hp": 73,
     "exp": 15
   },
   {
@@ -1145,7 +1145,7 @@ export const ENEMY_VARIANTS = [
     "password": "PIXEL_SPROUT",
     "icon": "🌱",
     "sprite": "🌱",
-    "hp": 49,
+    "hp": 71,
     "exp": 15
   },
   {
@@ -1163,7 +1163,7 @@ export const ENEMY_VARIANTS = [
     "password": "HASH_HEDGE",
     "icon": "#",
     "sprite": "#",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -1181,7 +1181,7 @@ export const ENEMY_VARIANTS = [
     "password": "BYTE_MOUSE",
     "icon": "🐭",
     "sprite": "🐭",
-    "hp": 51,
+    "hp": 74,
     "exp": 16
   },
   {
@@ -1199,7 +1199,7 @@ export const ENEMY_VARIANTS = [
     "password": "TAP_TOAD",
     "icon": "🐸",
     "sprite": "🐸",
-    "hp": 53,
+    "hp": 77,
     "exp": 16
   },
   {
@@ -1217,7 +1217,7 @@ export const ENEMY_VARIANTS = [
     "password": "MINI_CACHE_CAT",
     "icon": "🐱",
     "sprite": "🐱",
-    "hp": 54,
+    "hp": 78,
     "exp": 17
   },
   {
@@ -1235,7 +1235,7 @@ export const ENEMY_VARIANTS = [
     "password": "MEMO_MUSHROOM",
     "icon": "🍄",
     "sprite": "🍄",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -1253,7 +1253,7 @@ export const ENEMY_VARIANTS = [
     "password": "SOFT_BUG",
     "icon": "🐛",
     "sprite": "🐛",
-    "hp": 50,
+    "hp": 73,
     "exp": 15
   },
   {
@@ -1271,7 +1271,7 @@ export const ENEMY_VARIANTS = [
     "password": "LINE_SEED",
     "icon": "🌾",
     "sprite": "🌾",
-    "hp": 55,
+    "hp": 80,
     "exp": 17
   },
   {
@@ -1289,7 +1289,7 @@ export const ENEMY_VARIANTS = [
     "password": "BLINK_BUNNY",
     "icon": "🐰",
     "sprite": "🐰",
-    "hp": 56,
+    "hp": 81,
     "exp": 18
   },
   {
@@ -1307,7 +1307,7 @@ export const ENEMY_VARIANTS = [
     "password": "BRACKET_BLOOM",
     "icon": "🌸",
     "sprite": "🌸",
-    "hp": 68,
+    "hp": 99,
     "exp": 25
   },
   {
@@ -1325,7 +1325,7 @@ export const ENEMY_VARIANTS = [
     "password": "PATCH_PORCUPINE",
     "icon": "🧩",
     "sprite": "🧩",
-    "hp": 72,
+    "hp": 104,
     "exp": 27
   },
   {
@@ -1343,7 +1343,7 @@ export const ENEMY_VARIANTS = [
     "password": "TOKEN_TURTLE",
     "icon": "🐢",
     "sprite": "🐢",
-    "hp": 76,
+    "hp": 110,
     "exp": 29
   },
   {
@@ -1361,7 +1361,7 @@ export const ENEMY_VARIANTS = [
     "password": "LOG_LANTERN",
     "icon": "🏮",
     "sprite": "🏮",
-    "hp": 70,
+    "hp": 102,
     "exp": 26
   },
   {
@@ -1379,7 +1379,7 @@ export const ENEMY_VARIANTS = [
     "password": "ARRAY_ALPACA",
     "icon": "🦙",
     "sprite": "🦙",
-    "hp": 92,
+    "hp": 133,
     "exp": 40
   },
   {
@@ -1397,7 +1397,7 @@ export const ENEMY_VARIANTS = [
     "password": "COMPILE_CHICK",
     "icon": "🐥",
     "sprite": "🐥",
-    "hp": 98,
+    "hp": 142,
     "exp": 43
   },
   {
@@ -1415,7 +1415,7 @@ export const ENEMY_VARIANTS = [
     "password": "GLITCH_CHIMERA_PUP",
     "icon": "🧬",
     "sprite": "🧬",
-    "hp": 132,
+    "hp": 191,
     "exp": 66
   },
   {
@@ -1433,7 +1433,7 @@ export const ENEMY_VARIANTS = [
     "password": "WORD_ACORN",
     "icon": "🌰",
     "sprite": "🌰",
-    "hp": 50,
+    "hp": 73,
     "exp": 15
   },
   {
@@ -1451,7 +1451,7 @@ export const ENEMY_VARIANTS = [
     "password": "VOWEL_SPRITE",
     "icon": "🧚",
     "sprite": "🧚",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -1469,7 +1469,7 @@ export const ENEMY_VARIANTS = [
     "password": "SUFFIX_SNAIL",
     "icon": "🐌",
     "sprite": "🐌",
-    "hp": 53,
+    "hp": 77,
     "exp": 16
   },
   {
@@ -1487,7 +1487,7 @@ export const ENEMY_VARIANTS = [
     "password": "PREFIX_PUP",
     "icon": "🐶",
     "sprite": "🐶",
-    "hp": 51,
+    "hp": 74,
     "exp": 16
   },
   {
@@ -1505,7 +1505,7 @@ export const ENEMY_VARIANTS = [
     "password": "TYPO_SPRITE",
     "icon": "🧚",
     "sprite": "🧚",
-    "hp": 54,
+    "hp": 78,
     "exp": 17
   },
   {
@@ -1523,7 +1523,7 @@ export const ENEMY_VARIANTS = [
     "password": "VOCAB_VOLE",
     "icon": "⛏️",
     "sprite": "⛏️",
-    "hp": 55,
+    "hp": 80,
     "exp": 17
   },
   {
@@ -1541,7 +1541,7 @@ export const ENEMY_VARIANTS = [
     "password": "PHRASE_FAWN",
     "icon": "🦌",
     "sprite": "🦌",
-    "hp": 56,
+    "hp": 81,
     "exp": 18
   },
   {
@@ -1559,7 +1559,7 @@ export const ENEMY_VARIANTS = [
     "password": "COMMA_KOALA",
     "icon": "🐨",
     "sprite": "🐨",
-    "hp": 52,
+    "hp": 75,
     "exp": 16
   },
   {
@@ -1577,7 +1577,7 @@ export const ENEMY_VARIANTS = [
     "password": "QUOTE_QUOKKA",
     "icon": "🙂",
     "sprite": "🙂",
-    "hp": 53,
+    "hp": 77,
     "exp": 16
   },
   {
@@ -1595,7 +1595,7 @@ export const ENEMY_VARIANTS = [
     "password": "RHYME_RAT",
     "icon": "🐭",
     "sprite": "🐭",
-    "hp": 51,
+    "hp": 74,
     "exp": 15
   },
   {
@@ -1613,7 +1613,7 @@ export const ENEMY_VARIANTS = [
     "password": "DICTIONARY_DRYAD",
     "icon": "🌳",
     "sprite": "🌳",
-    "hp": 56,
+    "hp": 81,
     "exp": 18
   },
   {
@@ -1631,7 +1631,7 @@ export const ENEMY_VARIANTS = [
     "password": "SYNTAX_SATYR",
     "icon": "🎵",
     "sprite": "🎵",
-    "hp": 70,
+    "hp": 102,
     "exp": 26
   },
   {
@@ -1649,7 +1649,7 @@ export const ENEMY_VARIANTS = [
     "password": "GRAMMAR_GRIMOIRE",
     "icon": "📖",
     "sprite": "📖",
-    "hp": 74,
+    "hp": 107,
     "exp": 28
   },
   {
@@ -1667,7 +1667,7 @@ export const ENEMY_VARIANTS = [
     "password": "CAPITAL_CROW",
     "icon": "🐦",
     "sprite": "🐦",
-    "hp": 68,
+    "hp": 99,
     "exp": 25
   },
   {
@@ -1685,7 +1685,7 @@ export const ENEMY_VARIANTS = [
     "password": "PRONOUN_PUPPET",
     "icon": "🧸",
     "sprite": "🧸",
-    "hp": 72,
+    "hp": 104,
     "exp": 27
   },
   {
@@ -1703,7 +1703,7 @@ export const ENEMY_VARIANTS = [
     "password": "IDIOM_IMP",
     "icon": "👺",
     "sprite": "👺",
-    "hp": 76,
+    "hp": 110,
     "exp": 29
   },
   {
@@ -1721,7 +1721,7 @@ export const ENEMY_VARIANTS = [
     "password": "SEMANTIC_SWAN",
     "icon": "🦢",
     "sprite": "🦢",
-    "hp": 96,
+    "hp": 139,
     "exp": 42
   },
   {
@@ -1739,7 +1739,7 @@ export const ENEMY_VARIANTS = [
     "password": "METAPHOR_MIMIC",
     "icon": "🎁",
     "sprite": "🎁",
-    "hp": 102,
+    "hp": 148,
     "exp": 45
   },
   {
@@ -1757,7 +1757,7 @@ export const ENEMY_VARIANTS = [
     "password": "NARRATIVE_NYMPH",
     "icon": "🧚",
     "sprite": "🧚",
-    "hp": 100,
+    "hp": 145,
     "exp": 44
   },
   {
@@ -1775,7 +1775,7 @@ export const ENEMY_VARIANTS = [
     "password": "PARADOX_JESTER",
     "icon": "🃏",
     "sprite": "🃏",
-    "hp": 136,
+    "hp": 197,
     "exp": 68
   },
   {
@@ -1793,7 +1793,7 @@ export const ENEMY_VARIANTS = [
     "password": "LOGIC_LION",
     "icon": "🦁",
     "sprite": "🦁",
-    "hp": 104,
+    "hp": 151,
     "exp": 46
   },
   {
@@ -1811,7 +1811,7 @@ export const ENEMY_VARIANTS = [
     "password": "BRANCH_BASILISK",
     "icon": "🐲",
     "sprite": "🐲",
-    "hp": 144,
+    "hp": 209,
     "exp": 72
   },
   {
@@ -1830,7 +1830,7 @@ export const ENEMY_VARIANTS = [
     "password": "STACK_SENTINEL",
     "icon": "🛡️",
     "sprite": "🛡️",
-    "hp": 148,
+    "hp": 215,
     "exp": 74
   },
   {
@@ -1849,7 +1849,7 @@ export const ENEMY_VARIANTS = [
     "password": "PLUS_MIMIC",
     "icon": "🎁",
     "sprite": "🎁",
-    "hp": 70,
+    "hp": 102,
     "exp": 26
   },
   {
@@ -1868,7 +1868,7 @@ export const ENEMY_VARIANTS = [
     "password": "MINUS_WOLF",
     "icon": "🐺",
     "sprite": "🐺",
-    "hp": 72,
+    "hp": 104,
     "exp": 27
   },
   {
@@ -1887,7 +1887,7 @@ export const ENEMY_VARIANTS = [
     "password": "ASTERISK_KNIGHT",
     "icon": "🛡️",
     "sprite": "🛡️",
-    "hp": 92,
+    "hp": 133,
     "exp": 40
   },
   {
@@ -1906,7 +1906,7 @@ export const ENEMY_VARIANTS = [
     "password": "SLASH_CRAB",
     "icon": "🦀",
     "sprite": "🦀",
-    "hp": 74,
+    "hp": 107,
     "exp": 28
   },
   {
@@ -1925,7 +1925,7 @@ export const ENEMY_VARIANTS = [
     "password": "NUMBER_GHOST",
     "icon": "👻",
     "sprite": "👻",
-    "hp": 68,
+    "hp": 99,
     "exp": 25
   },
   {
@@ -1944,7 +1944,7 @@ export const ENEMY_VARIANTS = [
     "password": "QUOTE_NUMBER",
     "icon": "🔢",
     "sprite": "🔢",
-    "hp": 70,
+    "hp": 102,
     "exp": 26
   },
   {
@@ -1963,7 +1963,7 @@ export const ENEMY_VARIANTS = [
     "password": "ZENKAKU_SPACE_SLIME",
     "icon": "🫧",
     "sprite": "🫧",
-    "hp": 76,
+    "hp": 110,
     "exp": 30
   },
   {
@@ -1982,7 +1982,7 @@ export const ENEMY_VARIANTS = [
     "password": "OPERATOR_OWL",
     "icon": "🦉",
     "sprite": "🦉",
-    "hp": 90,
+    "hp": 131,
     "exp": 38
   },
   {
@@ -2001,7 +2001,7 @@ export const ENEMY_VARIANTS = [
     "password": "KAKEZAN_BAT",
     "icon": "🦇",
     "sprite": "🦇",
-    "hp": 72,
+    "hp": 104,
     "exp": 27
   },
   {
@@ -2020,7 +2020,7 @@ export const ENEMY_VARIANTS = [
     "password": "WARIZAN_SHARK",
     "icon": "🦈",
     "sprite": "🦈",
-    "hp": 125,
+    "hp": 181,
     "exp": 58
   },
   {
@@ -2039,7 +2039,7 @@ export const ENEMY_VARIANTS = [
     "password": "IF_IFRIT",
     "icon": "🔥",
     "sprite": "🔥",
-    "hp": 98,
+    "hp": 142,
     "exp": 44
   },
   {
@@ -2058,7 +2058,7 @@ export const ENEMY_VARIANTS = [
     "password": "COLON_PHOENIX",
     "icon": "🐦",
     "sprite": "🐦",
-    "hp": 80,
+    "hp": 116,
     "exp": 31
   },
   {
@@ -2077,7 +2077,7 @@ export const ENEMY_VARIANTS = [
     "password": "INDENT_SALAMANDER",
     "icon": "🦎",
     "sprite": "🦎",
-    "hp": 104,
+    "hp": 151,
     "exp": 48
   },
   {
@@ -2096,7 +2096,7 @@ export const ENEMY_VARIANTS = [
     "password": "COMPARE_GOLEM",
     "icon": "🗿",
     "sprite": "🗿",
-    "hp": 82,
+    "hp": 119,
     "exp": 32
   },
   {
@@ -2115,7 +2115,7 @@ export const ENEMY_VARIANTS = [
     "password": "TRUE_FLAME",
     "icon": "🔥",
     "sprite": "🔥",
-    "hp": 78,
+    "hp": 113,
     "exp": 30
   },
   {
@@ -2134,7 +2134,7 @@ export const ENEMY_VARIANTS = [
     "password": "FALSE_LAVA",
     "icon": "🌋",
     "sprite": "🌋",
-    "hp": 80,
+    "hp": 116,
     "exp": 31
   },
   {
@@ -2153,7 +2153,7 @@ export const ENEMY_VARIANTS = [
     "password": "EQUAL_MIRAGE",
     "icon": "✨",
     "sprite": "✨",
-    "hp": 76,
+    "hp": 110,
     "exp": 30
   },
   {
@@ -2172,7 +2172,7 @@ export const ENEMY_VARIANTS = [
     "password": "DAISHOU_TENBIN",
     "icon": "⚖️",
     "sprite": "⚖️",
-    "hp": 100,
+    "hp": 145,
     "exp": 46
   },
   {
@@ -2191,7 +2191,7 @@ export const ENEMY_VARIANTS = [
     "password": "CASE_SHIFTER",
     "icon": "🦊",
     "sprite": "🦊",
-    "hp": 82,
+    "hp": 119,
     "exp": 32
   },
   {
@@ -2210,7 +2210,7 @@ export const ENEMY_VARIANTS = [
     "password": "BRANCH_HARPY",
     "icon": "🪽",
     "sprite": "🪽",
-    "hp": 84,
+    "hp": 122,
     "exp": 34
   },
   {
@@ -2228,7 +2228,7 @@ export const ENEMY_VARIANTS = [
     "password": "CALCULA_KING",
     "icon": "👑",
     "sprite": "👑",
-    "hp": 168,
+    "hp": 244,
     "exp": 86
   },
   {
@@ -2246,7 +2246,7 @@ export const ENEMY_VARIANTS = [
     "password": "COLON_RABBIT",
     "icon": "🐰",
     "sprite": "🐰",
-    "hp": 78,
+    "hp": 113,
     "exp": 30
   },
   {
@@ -2264,7 +2264,7 @@ export const ENEMY_VARIANTS = [
     "password": "MOFU_SHIELD",
     "icon": "🛡️",
     "sprite": "🛡️",
-    "hp": 120,
+    "hp": 174,
     "exp": 0
   },
   {
@@ -2282,7 +2282,7 @@ export const ENEMY_VARIANTS = [
     "password": "ASTRAL_KNIGHT",
     "icon": "⚔️",
     "sprite": "⚔️",
-    "hp": 150,
+    "hp": 218,
     "exp": 0
   },
   {
@@ -2300,7 +2300,7 @@ export const ENEMY_VARIANTS = [
     "password": "IKUSA_LOSE",
     "icon": "🦗",
     "sprite": "🦗",
-    "hp": 110,
+    "hp": 160,
     "exp": 0
   },
   {
@@ -2318,7 +2318,7 @@ export const ENEMY_VARIANTS = [
     "password": "CHIKUWA_DAIMYOSHIN",
     "icon": "🍢",
     "sprite": "🍢",
-    "hp": 130,
+    "hp": 189,
     "exp": 0
   },
   {
@@ -2336,7 +2336,7 @@ export const ENEMY_VARIANTS = [
     "password": "GENBA_YOSHI",
     "icon": "🐱",
     "sprite": "🐱",
-    "hp": 118,
+    "hp": 171,
     "exp": 0
   },
   {
@@ -2354,7 +2354,7 @@ export const ENEMY_VARIANTS = [
     "password": "HEADLOCK_GUARD",
     "icon": "🦘",
     "sprite": "🦘",
-    "hp": 135,
+    "hp": 196,
     "exp": 0
   },
   {
@@ -2372,7 +2372,7 @@ export const ENEMY_VARIANTS = [
     "password": "EHHOO_SPEED",
     "icon": "🦉",
     "sprite": "🦉",
-    "hp": 142,
+    "hp": 206,
     "exp": 0
   },
   {
@@ -2390,7 +2390,7 @@ export const ENEMY_VARIANTS = [
     "password": "DAKKO_PARTY",
     "icon": "🦜",
     "sprite": "🦜",
-    "hp": 108,
+    "hp": 157,
     "exp": 0
   }
 ];

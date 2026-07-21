@@ -18,6 +18,9 @@ import { Gauge, MonsterPortrait, StatusCard } from "./components/BattleWidgets";
 
 const SAVE_KEY = "typeOfLegendSave";
 const REQUIRED_QUESTIONS_PER_STAGE = 10;
+const WAVES_PER_STAGE = 3;
+const BATTLES_PER_WAVE = 3;
+const RARE_CHANCE_BATTLE_RATE = 0.6;
 const DEBUG_UNLOCK_LEVEL = 5;
 const ASSIST_CHARGE_MAX = 40;
 const RARITY_GLOW = {
@@ -1040,15 +1043,16 @@ function pickWeightedEnemy(candidates) {
   return weightedPool[Math.floor(Math.random() * weightedPool.length)] || candidates[0] || ENEMY_VARIANTS[0];
 }
 
-function getRandomEnemy(stageLevel) {
+function getStageEnemyCandidates(stageLevel) {
   const stageCandidates = ENEMY_VARIANTS.filter((monster) => {
     if (!Array.isArray(monster.levels) || monster.levels.length === 0) return true;
     return monster.levels.includes(stageLevel);
   });
 
-  const candidates = stageCandidates.length > 0 ? stageCandidates : ENEMY_VARIANTS;
-  const base = pickWeightedEnemy(candidates);
+  return stageCandidates.length > 0 ? stageCandidates : ENEMY_VARIANTS;
+}
 
+function buildEnemyFromBase(base, stageLevel) {
   const bonusHp = stageLevel * 35;
   const bonusExp = stageLevel * 12;
   const baseHp = base.hp ?? (base.rarity === "epic" ? 122 : base.rarity === "rare" ? 88 : base.rarity === "uncommon" ? 66 : 48);
@@ -1070,6 +1074,57 @@ function getRandomEnemy(stageLevel) {
     hp: baseHp + bonusHp,
     exp: baseExp + bonusExp,
   };
+}
+
+function getRandomEnemy(stageLevel) {
+  const base = pickWeightedEnemy(getStageEnemyCandidates(stageLevel));
+
+  return buildEnemyFromBase(base, stageLevel);
+}
+
+function getRareChanceEnemy(stageLevel) {
+  const rareCandidates = getStageEnemyCandidates(stageLevel).filter((monster) =>
+    ["rare", "epic"].includes(monster.rarity)
+  );
+
+  if (rareCandidates.length === 0) return null;
+
+  return buildEnemyFromBase(pickWeightedEnemy(rareCandidates), stageLevel);
+}
+
+function getWaveInfo(battleIndex) {
+  const wave = Math.floor(battleIndex / BATTLES_PER_WAVE) + 1;
+  const inWave = (battleIndex % BATTLES_PER_WAVE) + 1;
+  return { wave, inWave };
+}
+
+function createWaveExpLog() {
+  return {
+    waves: Array.from({ length: WAVES_PER_STAGE }, () => ({ defeated: 0, exp: 0 })),
+    rare: null,
+    totalExp: 0,
+  };
+}
+
+function addBattleToWaveLog(log, completedBattleNumber, exp, enemyName) {
+  const nextLog = {
+    waves: (log?.waves || createWaveExpLog().waves).map((wave) => ({ ...wave })),
+    rare: log?.rare ? { ...log.rare } : null,
+    totalExp: (log?.totalExp || 0) + exp,
+  };
+
+  if (completedBattleNumber > WAVES_PER_STAGE * BATTLES_PER_WAVE) {
+    nextLog.rare = { enemyName, exp };
+    return nextLog;
+  }
+
+  const waveIndex = Math.floor((completedBattleNumber - 1) / BATTLES_PER_WAVE);
+  if (nextLog.waves[waveIndex]) {
+    nextLog.waves[waveIndex].defeated += 1;
+    nextLog.waves[waveIndex].exp += exp;
+  }
+
+  return nextLog;
 }
 
 function getBaseMonsterForEvolution(monsterId) {
@@ -1110,7 +1165,7 @@ function getEvolvedId(monsterId) {
 }
 
 function getEvolutionThreshold(monsterId) {
-  return getEvolutionStage(monsterId) === 0 ? 5 : 12;
+  return getEvolutionStage(monsterId) === 0 ? 8 : 15;
 }
 
 function getEvolutionHint(skillCount, threshold) {
@@ -1264,6 +1319,10 @@ export default function App() {
   const [journey, setJourney] = useState(null);
   const [debugHintOpen, setDebugHintOpen] = useState(false);
   const [encounterDeck, setEncounterDeck] = useState([]);
+  const [expToast, setExpToast] = useState(null);
+  const [waveClearPopup, setWaveClearPopup] = useState(null);
+  const [waveExpLog, setWaveExpLog] = useState(createWaveExpLog);
+  const [rareChanceActive, setRareChanceActive] = useState(false);
 
   const [elapsed, setElapsed] = useState(0);
   const [roundId, setRoundId] = useState(0);
@@ -1324,6 +1383,7 @@ export default function App() {
   const menuBgmRef = useRef(null);
   const resultSoundSeqRef = useRef(0);
   const journeyTimerRef = useRef(null);
+  const wavePopupTimerRef = useRef(null);
   const postEvolutionActionRef = useRef(null);
   const pendingVictoryActionRef = useRef(null);
   const isComposingRef = useRef(false);
@@ -1439,7 +1499,6 @@ export default function App() {
     fixedBugTypes,
     bugBookTotal,
   ]);
-  const stageQuestionTotal = REQUIRED_QUESTIONS_PER_STAGE;
   const stageQuestionPoolTotal = getQuestionCountForLevel(selectedLevel);
   const currentQuestionNumber = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
   const answeredQuestionCount = Math.min(questionCount, REQUIRED_QUESTIONS_PER_STAGE);
@@ -1661,6 +1720,39 @@ export default function App() {
     focusInput();
   }
 
+  function clearWavePopupTimer() {
+    if (wavePopupTimerRef.current) {
+      clearTimeout(wavePopupTimerRef.current);
+      wavePopupTimerRef.current = null;
+    }
+  }
+
+  function resetWaveRunState() {
+    clearWavePopupTimer();
+    setExpToast(null);
+    setWaveClearPopup(null);
+    setWaveExpLog(createWaveExpLog());
+    setRareChanceActive(false);
+  }
+
+  function showExpToast(exp, enemyName) {
+    if (exp <= 0) return;
+
+    setExpToast({ exp, enemyName, key: Date.now() });
+    setTimeout(() => setExpToast(null), 1600);
+  }
+
+  function showWaveClearPopup(wave, message, onComplete) {
+    clearWavePopupTimer();
+    clearInterval(timerRef.current);
+    setWaveClearPopup({ wave, message, key: Date.now() });
+    wavePopupTimerRef.current = setTimeout(() => {
+      setWaveClearPopup(null);
+      wavePopupTimerRef.current = null;
+      onComplete?.();
+    }, 2000);
+  }
+
   function startBgm() {
     if (!soundEnabled) return;
 
@@ -1712,6 +1804,7 @@ export default function App() {
     stopActiveSounds();
     stopMenuBgm();
     playSound("click", soundEnabled);
+    resetWaveRunState();
     const activeMode = selectedMode === "debug" && debugDungeonUnlocked ? "debug" : "normal";
     if (activeMode !== selectedMode) {
       setSelectedMode(activeMode);
@@ -1776,6 +1869,7 @@ export default function App() {
     if (journeyTimerRef.current) {
       clearTimeout(journeyTimerRef.current);
     }
+    resetWaveRunState();
     setJourney(null);
     setEncounterDeck([]);
 
@@ -1839,6 +1933,91 @@ export default function App() {
         await playSoundAndWait("levelup", soundEnabled);
       }
     }, delay);
+  }
+
+  function continueToNextBattle(nextCompletedCount, message, forcedEnemy = null, delay = 650, allowEffectChance = true) {
+    const resumeAction = { type: "journey", nextQuestionCount: nextCompletedCount, forcedEnemy, message };
+
+    setBattleLog(message);
+    setTimeout(() => {
+      if (allowEffectChance && maybeOpenEffectChance(resumeAction, { allowReview: true })) {
+        return;
+      }
+
+      beginJourneyToNext(nextCompletedCount, forcedEnemy, message);
+    }, delay);
+  }
+
+  function completeBattleProgress({
+    nextCompletedCount,
+    gainedExp = 0,
+    enemyName = "",
+    message,
+    stageClearMessage,
+    shouldLevelUp = false,
+  }) {
+    const safeCompletedCount = Math.min(nextCompletedCount, REQUIRED_QUESTIONS_PER_STAGE);
+
+    setQuestionCount(safeCompletedCount);
+    setReviewMode(false);
+    setTyped("");
+    setPendingCorrect(false);
+    setFlash(null);
+
+    if (gainedExp > 0) {
+      showExpToast(gainedExp, enemyName);
+      setWaveExpLog((currentLog) => addBattleToWaveLog(currentLog, safeCompletedCount, gainedExp, enemyName));
+    }
+
+    if (safeCompletedCount >= REQUIRED_QUESTIONS_PER_STAGE) {
+      setRareChanceActive(true);
+      finishStageClear(stageClearMessage || message, shouldLevelUp, 900);
+      return;
+    }
+
+    const isWaveBoundary = safeCompletedCount % BATTLES_PER_WAVE === 0;
+    const isAfterWaveThree = safeCompletedCount === WAVES_PER_STAGE * BATTLES_PER_WAVE;
+
+    if (isAfterWaveThree) {
+      const rareEnemy = Math.random() < RARE_CHANCE_BATTLE_RATE
+        ? getRareChanceEnemy(selectedLevel)
+        : null;
+
+      if (rareEnemy) {
+        setRareChanceActive(true);
+        showWaveClearPopup(3, "✨ レアチャンス！強敵が現れた！", () => {
+          continueToNextBattle(
+            safeCompletedCount,
+            `✨ レアチャンス！強敵 ${rareEnemy.name} が現れた！最後の呪文で捕まえにいこう。`,
+            rareEnemy,
+            650,
+            false
+          );
+        });
+        return;
+      }
+
+      setRareChanceActive(false);
+      finishStageClear(
+        `${message} 9戦突破！今回はレアチャンスの気配はなかったが、堂々のステージクリア！`,
+        shouldLevelUp,
+        900
+      );
+      return;
+    }
+
+    if (isWaveBoundary) {
+      const { wave } = getWaveInfo(safeCompletedCount - 1);
+      showWaveClearPopup(wave, `ウェーブ${wave} クリア！ 次のウェーブが始まります…`, () => {
+        continueToNextBattle(
+          safeCompletedCount,
+          `🌊 ウェーブ${wave + 1}開始！次のコードモンスターを探しに行こう。`
+        );
+      });
+      return;
+    }
+
+    continueToNextBattle(safeCompletedCount, message, null, gainedExp > 0 ? 1500 : 650);
   }
 
   function triggerMonsterComment(enemyObj, eventType) {
@@ -1913,9 +2092,9 @@ export default function App() {
     }, 350);
   }
 
-  function beginJourneyToNext(nextQuestionCount) {
+  function beginJourneyToNext(nextQuestionCount, forcedEnemy = null, customMessage = null) {
     const totalQuestions = REQUIRED_QUESTIONS_PER_STAGE;
-    const nextQuestionNumber = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
+    const nextQuestionNumber = Math.min(nextQuestionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
 
     setJourney({
       mode: selectedMode,
@@ -1924,16 +2103,16 @@ export default function App() {
       questionNumber: nextQuestionNumber,
       totalQuestions,
       poolTotal: getQuestionCountForLevel(selectedLevel),
-      completedQuestions: Math.min(questionCount, REQUIRED_QUESTIONS_PER_STAGE),
+      completedQuestions: Math.min(nextQuestionCount, REQUIRED_QUESTIONS_PER_STAGE),
       tip: ADVENTURE_TIPS[nextQuestionCount % ADVENTURE_TIPS.length],
       message:
-        selectedMode === "debug"
+        customMessage || (selectedMode === "debug"
           ? "次のバグ憑き呪文へ移動中……"
-          : "次のコードモンスターを探して移動中……",
+          : "次のコードモンスターを探して移動中……"),
     });
 
     journeyTimerRef.current = setTimeout(() => {
-      startNextBattle(nextQuestionCount);
+      startNextBattle(nextQuestionCount, forcedEnemy, customMessage);
     }, 3200);
   }
 
@@ -1956,7 +2135,7 @@ export default function App() {
     }
 
     if (resumeAction.type === "journey") {
-      beginJourneyToNext(resumeAction.nextQuestionCount);
+      beginJourneyToNext(resumeAction.nextQuestionCount, resumeAction.forcedEnemy, resumeAction.message);
     }
   }
 
@@ -2149,10 +2328,14 @@ export default function App() {
     return 15 + Math.min(nextCombo * 2, 20);
   }
 
+  function getScaledAssistGaugeGain(nextCombo) {
+    return Math.round(getAssistGaugeGain(nextCombo) * 1.3);
+  }
+
   function gainAssistGauge(activeCompanion, nextCombo, canOpenCharge = true) {
     if (!activeCompanion) return false;
 
-    const gaugeGain = getAssistGaugeGain(nextCombo);
+    const gaugeGain = getScaledAssistGaugeGain(nextCombo);
     const nextGauge = assistGauge + gaugeGain;
 
     if (nextGauge >= 100) {
@@ -2282,7 +2465,7 @@ export default function App() {
     setTimeupStreak(0);
 
     const wasReview = reviewMode;
-    const isCritical = remaining >= Math.ceil(TIME_LIMIT * 0.6) || combo >= 2;
+    const isCritical = remaining >= Math.ceil(TIME_LIMIT * 0.6);
     const baseDamage = wasReview ? 50 + selectedLevel * 10 : 40 + selectedLevel * 8;
     const titleDamage = applyTitleDamageBonus(isCritical ? baseDamage + 20 : baseDamage, combo + 1, activePassive);
     const damage = Math.round(titleDamage * damageMultiplier * damageMultiplierFromAssist);
@@ -2314,7 +2497,7 @@ export default function App() {
     setLastDamageDealt(damage);
     const shouldDelayVictoryForAssist = nextEnemyHp <= 0
       && companion
-      && assistGauge + getAssistGaugeGain(nextCombo) >= 100;
+      && assistGauge + getScaledAssistGaugeGain(nextCombo) >= 100;
     const assistChargeStarted = gainAssistGauge(companion, nextCombo, nextEnemyHp > 0 && !wasReview);
     setFlash(isCritical ? "critical" : "ok");
     playSound(isCritical ? "critical" : "ok", soundEnabled);
@@ -2358,7 +2541,6 @@ export default function App() {
         .playerLevel;
       const shouldLevelUp = afterLevel > beforeLevel;
       const nextCompletedCount = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
-      const didStageClear = nextCompletedCount >= REQUIRED_QUESTIONS_PER_STAGE;
 
       setSave((prev) => {
         const nextSave = {
@@ -2384,42 +2566,14 @@ export default function App() {
               shouldLevelUp ? "魔術師レベルアップ！" : "いい詠唱だった！"
             }`;
 
-        const DEFEAT_COMMENT_DELAY = 3200;
-
-        if (didStageClear) {
-          finishStageClear(
-            `${defeatMessage} そして ${REQUIRED_QUESTIONS_PER_STAGE}問達成！ ${LEVELS[selectedLevel].stageName} クリア！`,
-            shouldLevelUp,
-            DEFEAT_COMMENT_DELAY
-          );
-          return;
-        }
-
-        setBattleLog(defeatMessage);
-
-        const FADE_DURATION = 500;
-        setTimeout(() => setScreenFade("out"), DEFEAT_COMMENT_DELAY - FADE_DURATION);
-
-        setTimeout(async () => {
-          const soundSeq = resultSoundSeqRef.current + 1;
-          resultSoundSeqRef.current = soundSeq;
-
-          stopBgm();
-          stopActiveSounds();
-          setFlash(null);
-
-          setScreenFade("in");
-          setFinished(true);
-          setResultType(shouldLevelUp ? "levelup" : "victory");
-
-          await playSoundAndWait("victory", soundEnabled);
-
-          if (soundSeq !== resultSoundSeqRef.current) return;
-
-          if (shouldLevelUp) {
-            await playSoundAndWait("levelup", soundEnabled);
-          }
-        }, DEFEAT_COMMENT_DELAY);
+        completeBattleProgress({
+          nextCompletedCount,
+          gainedExp,
+          enemyName: enemy.name,
+          message: defeatMessage,
+          stageClearMessage: `${defeatMessage} そして冒険完走！ ${LEVELS[selectedLevel].stageName} クリア！`,
+          shouldLevelUp,
+        });
       };
 
       if (shouldDelayVictoryForAssist && companion) {
@@ -2455,32 +2609,15 @@ export default function App() {
 
     const nextQuestionCount = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
 
-    setQuestionCount(nextQuestionCount);
-    setReviewMode(false);
-    setTyped("");
-
-    if (nextQuestionCount >= REQUIRED_QUESTIONS_PER_STAGE) {
-      finishStageClear(
-        selectedMode === "debug"
-          ? `🐞✨ バグ完全浄化！「${getDebugChallenge(current).bugName}」を見抜いた！ そして ${REQUIRED_QUESTIONS_PER_STAGE}問達成！ ${LEVELS[selectedLevel].stageName} クリア！`
-          : `✅ 復習追撃成功！そして ${REQUIRED_QUESTIONS_PER_STAGE}問達成！ ${LEVELS[selectedLevel].stageName} クリア！`,
-        false
-      );
-      return;
-    }
-
     const nextMessage = selectedMode === "debug"
-      ? `🐞✨ バグ完全浄化！「${getDebugChallenge(current).bugName}」を見抜いた！ 図鑑にも記録されました。次のバグ憑き呪文へ！`
-      : "✅ 復習追撃成功！同じ呪文を2回唱えたので、記憶への定着ダメージが入りました。次の呪文へ！";
+      ? `🐞 バグは見抜いたが、${enemy.name}には逃げられた！今回は撃退、次のバグ憑き呪文へ。`
+      : `✅ 追撃は成功！ただし ${enemy.name} は倒しきれずに逃げた。今回は撃退、次の呪文へ！`;
 
-    if (maybeOpenEffectChance(
-      { type: "nextQuestion", nextQuestionCount, message: nextMessage },
-      { allowReview: true }
-    )) {
-      return;
-    }
-
-    moveToNextQuestion(nextQuestionCount, nextMessage);
+    completeBattleProgress({
+      nextCompletedCount: nextQuestionCount,
+      message: nextMessage,
+      stageClearMessage: `${nextMessage} 冒険を走り抜けて ${LEVELS[selectedLevel].stageName} クリア！`,
+    });
   }
 
   function handleKeyDown(e) {
@@ -2501,9 +2638,9 @@ export default function App() {
     }
   }
 
-  function startNextBattle(nextQuestionCount) {
+  function startNextBattle(nextQuestionCount, forcedEnemy = null, customMessage = null) {
     const encounter = getEncounterFromDeck(encounterDeck, nextQuestionCount, selectedLevel);
-    const newEnemy = encounter.enemy;
+    const newEnemy = forcedEnemy || encounter.enemy;
     const nextQuestion = encounter.question;
     setSave((prev) => {
       const seen = new Set(prev.monstersSeen || []);
@@ -2535,9 +2672,9 @@ export default function App() {
     setJourney(null);
 
     setBattleLog(
-      selectedMode === "debug"
+      customMessage || (selectedMode === "debug"
         ? `${newEnemy.name} 出現！ 次のバグ憑きコードを修復しよう。`
-        : `${newEnemy.name} 出現！ 次の呪文へ進もう。`
+        : `${newEnemy.name} 出現！ 次の呪文へ進もう。`)
     );
 
     startBgm();
@@ -2640,6 +2777,7 @@ export default function App() {
     if (journeyTimerRef.current) {
       clearTimeout(journeyTimerRef.current);
     }
+    resetWaveRunState();
     setJourney(null);
     setEncounterDeck([]);
 
@@ -3013,7 +3151,7 @@ export default function App() {
             }}
           >
             <span style={{ color: "#cbd5e1" }}>
-              🛡️ {getBattleModeLabel(selectedMode)} / {stage.label} / {stage.stageName} / {stageQuestionTotal}問中 {currentQuestionNumber}問目 / 1問 {TIME_LIMIT}秒
+              🛡️ {getBattleModeLabel(selectedMode)} / {stage.label} / {stage.stageName} / {currentQuestionNumber > WAVES_PER_STAGE * BATTLES_PER_WAVE ? "✨ レアチャンス！" : (() => { const { wave, inWave } = getWaveInfo(questionCount); return `ウェーブ${wave}/${WAVES_PER_STAGE}・${inWave}戦目`; })()} / 1問 {TIME_LIMIT}秒
             </span>
 
             <button
@@ -3251,6 +3389,21 @@ export default function App() {
             </div>
           )}
 
+          {expToast && (
+            <div key={expToast.key} className="exp-toast">
+              <span className="exp-toast__name">{expToast.enemyName} 撃破！</span>
+              <span className="exp-toast__exp">+{expToast.exp} EXP</span>
+            </div>
+          )}
+
+          {waveClearPopup && (
+            <div key={waveClearPopup.key} className="wave-clear-popup">
+              <div className="wave-clear-popup__icon">🌊</div>
+              <div className="wave-clear-popup__title">ウェーブ{waveClearPopup.wave} クリア！</div>
+              <div className="wave-clear-popup__message">{waveClearPopup.message}</div>
+            </div>
+          )}
+
           <div
             style={{
               background: reviewMode
@@ -3409,6 +3562,8 @@ export default function App() {
           />
         </div>
 
+          {!effectChanceActive && (
+          <>
           {selectedLevel <= 1 && (
             <div
               style={{
@@ -3479,6 +3634,8 @@ export default function App() {
               ⚠️ どこかで違う文字が入ってるかも。Backspaceで戻ればOK。焦らず詠唱！
             </div>
           )}
+          </>
+          )}
 
           <div
             style={{
@@ -3529,6 +3686,9 @@ export default function App() {
           stage={LEVELS[selectedLevel]}
           battleLog={battleLog}
           requiredQuestions={REQUIRED_QUESTIONS_PER_STAGE}
+          completedBattles={questionCount}
+          waveExpLog={waveExpLog}
+          rareChanceActive={rareChanceActive}
           combo={combo}
           playerLevel={getLevelInfoFromExp(save.exp).playerLevel}
           title={getPlayerTitle(getLevelInfoFromExp(save.exp).playerLevel)}
@@ -3895,7 +4055,24 @@ function SpellMeaningPanel({ current }) {
   );
 }
 
-function LevelClearScreen({ stage, battleLog, requiredQuestions, combo, playerLevel, title, onTown, isLastStage, onNextStage }) {
+function LevelClearScreen({
+  stage,
+  battleLog,
+  requiredQuestions,
+  completedBattles,
+  waveExpLog,
+  rareChanceActive,
+  combo,
+  playerLevel,
+  title,
+  onTown,
+  isLastStage,
+  onNextStage,
+}) {
+  const waveRows = waveExpLog?.waves || [];
+  const rareRow = waveExpLog?.rare;
+  const totalExp = waveExpLog?.totalExp || 0;
+
   return (
     <div
       style={{
@@ -3949,9 +4126,34 @@ function LevelClearScreen({ stage, battleLog, requiredQuestions, combo, playerLe
           textAlign: "left",
         }}
       >
-        <StatusCard label="クリア条件" value={`${requiredQuestions}問達成`} color="#fbbf24" />
+        <StatusCard label="冒険結果" value={`${completedBattles || requiredQuestions}戦完走`} color="#fbbf24" />
         <StatusCard label="最大コンボ" value={`${combo}`} color="#fb7185" />
         <StatusCard label="魔術師Lv" value={`Lv.${playerLevel}`} color="#38bdf8" />
+      </div>
+
+      <div className="wave-result-breakdown">
+        <div className="wave-result-breakdown__title">📜 ウェーブ冒険報告</div>
+        {waveRows.map((wave, index) => (
+          <div key={`wave-${index}`} className="wave-result-breakdown__row">
+            <span>ウェーブ{index + 1}</span>
+            <b>{wave.defeated}体撃破 / {wave.exp} EXP</b>
+          </div>
+        ))}
+        {rareChanceActive && (
+          <div className="wave-result-breakdown__row wave-result-breakdown__row--rare">
+            <span>10戦目レア</span>
+            <b>{rareRow ? `${rareRow.enemyName} / ${rareRow.exp} EXP` : "出現したが撃退"}</b>
+          </div>
+        )}
+        {!rareChanceActive && (
+          <div className="wave-result-breakdown__row">
+            <span>10戦目レア</span>
+            <b>今回は気配なし</b>
+          </div>
+        )}
+        <div className="wave-result-breakdown__total">
+          合計：{totalExp} EXP
+        </div>
       </div>
 
       <div
