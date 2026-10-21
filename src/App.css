@@ -442,6 +442,29 @@
   overflow-wrap: anywhere;
 }
 
+.journey-spell-preview {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+  background: rgba(120, 53, 15, 0.22);
+  color: #fef3c7;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.journey-spell-preview__label {
+  margin-bottom: 4px;
+  color: #fbbf24;
+  font-weight: 900;
+}
+
+.journey-spell-preview code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #e0f2fe;
+}
+
 .title-collection {
   margin-bottom: 18px;
   padding: 16px;
@@ -2813,11 +2836,47 @@
 }
 
 .answer-pending-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   margin-top: 8px;
   color: #bbf7d0;
-  font-size: 13px;
-  font-weight: 900;
+  font-size: 1.15rem;
+  font-weight: bold;
   text-align: center;
+}
+
+.answer-pending-note__message {
+  animation: enterPulse 1.1s ease-in-out infinite;
+}
+
+.answer-pending-confirm {
+  padding: 10px 22px;
+  border: 1px solid #86efac;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.3);
+}
+
+.answer-pending-confirm:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.answer-pending-tip {
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+@keyframes enterPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .debug-code-highlight {
@@ -3139,6 +3198,46 @@
   font-size: 1.05rem;
   font-weight: 900;
   text-align: right;
+}
+
+.stage-spell-review {
+  margin: 16px 0 20px;
+  padding: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.76);
+  text-align: left;
+}
+
+.stage-spell-review h3 {
+  margin: 0 0 10px;
+  color: #bae6fd;
+  font-size: 1rem;
+}
+
+.stage-spell-review__list {
+  display: grid;
+  gap: 8px;
+}
+
+.stage-spell-review__item {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.stage-spell-review__item code {
+  color: #fef3c7;
+  overflow-wrap: anywhere;
+}
+
+.stage-spell-review__item small {
+  color: #7dd3fc;
+  line-height: 1.5;
 }
 
 .assist-active-overlay {

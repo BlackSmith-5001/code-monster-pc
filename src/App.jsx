@@ -16,6 +16,7 @@ import {
 } from "./data";
 import { SHISHO_BOYAKI, EPIC_BOYAKI } from "./data/boyaki";
 import { Gauge, MonsterPortrait, StatusCard } from "./components/BattleWidgets";
+import { getExecutionPreview } from "./utils/executionPreview";
 
 const SAVE_KEY = "typeOfLegendSave";
 const REQUIRED_QUESTIONS_PER_STAGE = 10;
@@ -1343,6 +1344,8 @@ export default function App() {
   const [expToast, setExpToast] = useState(null);
   const [waveClearPopup, setWaveClearPopup] = useState(null);
   const [waveExpLog, setWaveExpLog] = useState(createWaveExpLog);
+  const [stageSpellLog, setStageSpellLog] = useState([]);
+  const [lastCastedSpell, setLastCastedSpell] = useState(null);
   const [rareChanceActive, setRareChanceActive] = useState(false);
 
   const [elapsed, setElapsed] = useState(0);
@@ -1406,6 +1409,8 @@ export default function App() {
   const journeyTimerRef = useRef(null);
   const journeyActionRef = useRef(null);
   const journeySkipStartedRef = useRef(false);
+  const lastCastedSpellRef = useRef(null);
+  const answerResolveLockedRef = useRef(false);
   const wavePopupTimerRef = useRef(null);
   const postEvolutionActionRef = useRef(null);
   const pendingVictoryActionRef = useRef(null);
@@ -1891,6 +1896,10 @@ export default function App() {
     setPlayerHp(100);
     setCombo(0);
     setQuestionCount(0);
+    setStageSpellLog([]);
+    setLastCastedSpell(null);
+    lastCastedSpellRef.current = null;
+    answerResolveLockedRef.current = false;
     setTyped("");
     setElapsed(0);
     setReviewMode(false);
@@ -2145,6 +2154,7 @@ export default function App() {
     const nextEncounter = getEncounterFromDeck(encounterDeck, nextQuestionCount, selectedLevel);
 
     setPendingCorrect(false);
+    answerResolveLockedRef.current = false;
     setCurrent(nextEncounter.question);
     setBattleLog(message);
 
@@ -2169,6 +2179,7 @@ export default function App() {
       poolTotal: getQuestionCountForLevel(selectedLevel),
       completedQuestions: Math.min(nextQuestionCount, REQUIRED_QUESTIONS_PER_STAGE),
       tip: ADVENTURE_TIPS[nextQuestionCount % ADVENTURE_TIPS.length],
+      lastCastedSpell: lastCastedSpellRef.current || lastCastedSpell,
       message:
         customMessage || (selectedMode === "debug"
           ? "次のバグ憑き呪文へ移動中……"
@@ -2525,6 +2536,7 @@ export default function App() {
 
     if (val === answerCode) {
       clearInterval(timerRef.current);
+      answerResolveLockedRef.current = false;
       setPendingCorrect(true);
       setFlash("ok");
       setBattleLog("✅ 呪文が完成！Enterキーで確定して攻撃しよう。");
@@ -2532,8 +2544,9 @@ export default function App() {
   }
 
   function resolveCorrectAnswer() {
-    if (!started || finished || !current || !enemy || !pendingCorrect) return;
+    if (!started || finished || !current || !enemy || !pendingCorrect || answerResolveLockedRef.current) return;
 
+    answerResolveLockedRef.current = true;
     clearInterval(timerRef.current);
     setPendingCorrect(false);
     setWrongStreak(0);
@@ -2608,6 +2621,17 @@ export default function App() {
     }
 
     if (nextEnemyHp <= 0) {
+      const spellRecord = {
+        code: answerCode,
+        hint: currentHint,
+        preview: getExecutionPreview(answerCode),
+      };
+      lastCastedSpellRef.current = spellRecord;
+      setLastCastedSpell(spellRecord);
+      setStageSpellLog((currentLog) => currentLog.some((spell) => spell.code === spellRecord.code)
+        ? currentLog
+        : [...currentLog, spellRecord]);
+
       const beforeLevel = getLevelInfoFromExp(save.exp).playerLevel;
       const gainedExp = Math.round(
         applyTitleExpBonus(enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0), activePassive)
@@ -2753,6 +2777,7 @@ export default function App() {
     setShowDetails(false);
     setTyped("");
     setPendingCorrect(false);
+    answerResolveLockedRef.current = false;
     setElapsed(0);
     setReviewMode(false);
     setJourney(null);
@@ -3697,7 +3722,16 @@ export default function App() {
 
           {pendingCorrect && (
             <div className="answer-pending-note">
-              ✅ 正解入力です。Enterキーで攻撃を確定！
+              <div className="answer-pending-note__message">✅ 正解！Enterキーで攻撃を確定！</div>
+              <button
+                type="button"
+                className="answer-pending-confirm"
+                onClick={resolveCorrectAnswer}
+                disabled={!pendingCorrect}
+              >
+                Enter ⏎ で攻撃！
+              </button>
+              <div className="answer-pending-tip">💡 Pythonは1行書き終えたら Enter で確定します</div>
             </div>
           )}
 
@@ -3775,6 +3809,7 @@ export default function App() {
           requiredQuestions={REQUIRED_QUESTIONS_PER_STAGE}
           completedBattles={questionCount}
           waveExpLog={waveExpLog}
+          stageSpellLog={stageSpellLog}
           rareChanceActive={rareChanceActive}
           combo={combo}
           playerLevel={getLevelInfoFromExp(save.exp).playerLevel}
@@ -4148,6 +4183,7 @@ function LevelClearScreen({
   requiredQuestions,
   completedBattles,
   waveExpLog,
+  stageSpellLog,
   rareChanceActive,
   combo,
   playerLevel,
@@ -4242,6 +4278,21 @@ function LevelClearScreen({
           合計：{totalExp} EXP
         </div>
       </div>
+
+      {stageSpellLog?.length > 0 && (
+        <section className="stage-spell-review">
+          <h3>🎓 今回の冒険で唱えた呪文</h3>
+          <div className="stage-spell-review__list">
+            {stageSpellLog.slice(-5).reverse().map((spell) => (
+              <article className="stage-spell-review__item" key={spell.code}>
+                <code>{spell.code}</code>
+                <span>{spell.hint}</span>
+                {spell.preview && <small>{spell.preview}</small>}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div
         style={{
@@ -4347,6 +4398,9 @@ function JourneyTransition({ journey, onAdvance }) {
       <h2 style={{ color: "#fef3c7", margin: "0 0 8px 0" }}>
         次の冒険へ移動中……
       </h2>
+      <div style={{ marginBottom: 10, color: "#94a3b8", fontSize: 12 }}>
+        Enterキー または画面クリックでスキップ
+      </div>
 
       <div style={{ color: "#cbd5e1", marginBottom: 16, lineHeight: 1.7 }}>
         {journey.message}
@@ -4441,6 +4495,13 @@ function JourneyTransition({ journey, onAdvance }) {
         <div className="journey-tip">
           <div className="journey-tip__label">冒険TIPS</div>
           <div className="journey-tip__text">{journey.tip}</div>
+        </div>
+      )}
+      {journey.lastCastedSpell?.preview && (
+        <div className="journey-spell-preview">
+          <div className="journey-spell-preview__label">📜 さっきの呪文</div>
+          <code>{journey.lastCastedSpell.code}</code>
+          <div>{journey.lastCastedSpell.preview}</div>
         </div>
       )}
     </div>
@@ -6464,12 +6525,12 @@ function BeginnerGuide({ onBack, onGoAdventure }) {
       title: "🔥 コンボとは？",
       body: (
         <>
-          <p>連続で正解するとコンボが続き、攻撃が少し強くなります。</p>
+          <p>連続で正解するとコンボが続きます。コンボを重ねるほど、相棒のアシストゲージが貯まりやすくなります。</p>
           <p>
             途中で間違えるとコンボは途切れますが、気にしすぎなくて大丈夫です。
             まずは「ゆっくり正確に」、慣れてきたら「速く正確に」を目指しましょう。
           </p>
-          <p>称号によっては、コンボ時のダメージをさらに伸ばせます。</p>
+          <p>称号によっては、コンボ時にダメージが伸びます。</p>
         </>
       ),
     },
