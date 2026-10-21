@@ -1071,7 +1071,7 @@ function getEnemyHpByRarity(rarity, stageLevel) {
     case "epic": return Math.round(twoHitTotal * 1.3);
     case "rare": return twoHitTotal;
     case "uncommon": return Math.round(crit * 1.35);
-    default: return crit;
+    default: return stageLevel === 0 ? crit : Math.round(crit * 1.25);
   }
 }
 
