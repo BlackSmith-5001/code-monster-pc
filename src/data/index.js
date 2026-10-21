@@ -8,6 +8,7 @@ export {
   RARITY_LABELS,
   RARITY_COLORS,
   getMonsterBookEntries,
+  getEvolvedBookEntries,
   getMonsterInfo,
   isObtainableMonster,
 } from "./enemies";

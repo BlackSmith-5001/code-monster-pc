@@ -7,6 +7,7 @@ import {
   RARITY_LABELS,
   RARITY_COLORS,
   getMonsterBookEntries,
+  getEvolvedBookEntries,
   getMonsterInfo,
   BUG_LIBRARY,
   getBugInfo,
@@ -21,8 +22,12 @@ const REQUIRED_QUESTIONS_PER_STAGE = 10;
 const WAVES_PER_STAGE = 3;
 const BATTLES_PER_WAVE = 3;
 const RARE_CHANCE_BATTLE_RATE = 0.6;
+const WAVE_POPUP_DURATION = 3000;
+const CRIT_DAMAGE_BY_STAGE = [60, 68, 76, 84];
+const REVIEW_CRIT_DAMAGE_BY_STAGE = [70, 80, 90, 100];
+const EXP_GLOBAL_MULTIPLIER = 0.7;
 const DEBUG_UNLOCK_LEVEL = 5;
-const ASSIST_CHARGE_MAX = 40;
+const ASSIST_CHARGE_MAX = 15;
 const RARITY_GLOW = {
   common: "rgba(148, 163, 184, 0.28)",
   uncommon: "rgba(52, 211, 153, 0.32)",
@@ -329,6 +334,7 @@ const INITIAL_SAVE = {
   lastSelectedMode: "normal",
   lastSelectedLevel: 0,
   debugTutorialCompleted: false,
+  companionIntroShown: false,
   monsterBookFilters: {
     status: "all",
     rarity: "all",
@@ -450,6 +456,9 @@ function sanitizeSave(parsed) {
     debugTutorialCompleted: typeof source.debugTutorialCompleted === "boolean"
       ? source.debugTutorialCompleted
       : INITIAL_SAVE.debugTutorialCompleted,
+    companionIntroShown: typeof source.companionIntroShown === "boolean"
+      ? source.companionIntroShown
+      : INITIAL_SAVE.companionIntroShown,
     monsterBookFilters: sanitizeMonsterBookFilters(source.monsterBookFilters),
     selectedTitleId: sanitizeTitleId(source.selectedTitleId),
     unlockedTitleIds: sanitizeStringArray(source.unlockedTitleIds, INITIAL_SAVE.unlockedTitleIds)
@@ -1052,10 +1061,22 @@ function getStageEnemyCandidates(stageLevel) {
   return stageCandidates.length > 0 ? stageCandidates : ENEMY_VARIANTS;
 }
 
+function getEnemyHpByRarity(rarity, stageLevel) {
+  const crit = CRIT_DAMAGE_BY_STAGE[stageLevel] ?? CRIT_DAMAGE_BY_STAGE[CRIT_DAMAGE_BY_STAGE.length - 1];
+  const reviewCrit = REVIEW_CRIT_DAMAGE_BY_STAGE[stageLevel] ?? REVIEW_CRIT_DAMAGE_BY_STAGE[REVIEW_CRIT_DAMAGE_BY_STAGE.length - 1];
+  const twoHitTotal = crit + reviewCrit;
+
+  switch (rarity) {
+    case "epic": return Math.round(twoHitTotal * 1.3);
+    case "rare": return twoHitTotal;
+    case "uncommon": return Math.round(crit * 1.35);
+    default: return crit;
+  }
+}
+
 function buildEnemyFromBase(base, stageLevel) {
-  const bonusHp = stageLevel * 35;
   const bonusExp = stageLevel * 12;
-  const baseHp = base.hp ?? (base.rarity === "epic" ? 122 : base.rarity === "rare" ? 88 : base.rarity === "uncommon" ? 66 : 48);
+  const baseHp = getEnemyHpByRarity(base.rarity, stageLevel);
   const baseExp = base.exp ?? (base.rarity === "epic" ? 60 : base.rarity === "rare" ? 38 : base.rarity === "uncommon" ? 24 : 14);
   const icon = base.icon || base.sprite || "🐲";
 
@@ -1070,8 +1091,8 @@ function buildEnemyFromBase(base, stageLevel) {
     description: base.description,
     habitat: base.habitat,
     password: base.password || base.transferCode || String(base.id).toUpperCase(),
-    maxHp: baseHp + bonusHp,
-    hp: baseHp + bonusHp,
+    maxHp: baseHp,
+    hp: baseHp,
     exp: baseExp + bonusExp,
   };
 }
@@ -1165,7 +1186,7 @@ function getEvolvedId(monsterId) {
 }
 
 function getEvolutionThreshold(monsterId) {
-  return getEvolutionStage(monsterId) === 0 ? 8 : 15;
+  return getEvolutionStage(monsterId) === 0 ? 3 : 6;
 }
 
 function getEvolutionHint(skillCount, threshold) {
@@ -1383,9 +1404,12 @@ export default function App() {
   const menuBgmRef = useRef(null);
   const resultSoundSeqRef = useRef(0);
   const journeyTimerRef = useRef(null);
+  const journeyActionRef = useRef(null);
+  const journeySkipStartedRef = useRef(false);
   const wavePopupTimerRef = useRef(null);
   const postEvolutionActionRef = useRef(null);
   const pendingVictoryActionRef = useRef(null);
+  const assistChargeTriggeredRef = useRef(false);
   const isComposingRef = useRef(false);
   const zenkakuWarningShownRef = useRef(false);
   const typingWrongMessageShownRef = useRef(false);
@@ -1453,6 +1477,15 @@ export default function App() {
       };
     }
 
+    if ((save.monstersDefeatedIds || []).length >= 1 && !save.equippedMonsterId) {
+      return {
+        badge: "新要素",
+        title: "相棒モンスターを装備しよう",
+        body: "討伐したモンスターを相棒にできる。冒険モード選択の「相棒メニュー」から選んでみよう。コンボが貯まるとアシスト技も使えるぞ。",
+        color: "#f472b6",
+      };
+    }
+
     if (nextUnclearedIndex >= 0) {
       const nextStage = LEVELS[nextUnclearedIndex];
 
@@ -1491,6 +1524,8 @@ export default function App() {
   }, [
     save.clearedLevels,
     save.debugTutorialCompleted,
+    save.equippedMonsterId,
+    save.monstersDefeatedIds,
     save.stagePlays,
     debugDungeonUnlocked,
     debugUnlockRemainingExp,
@@ -1517,6 +1552,20 @@ export default function App() {
   const isBattle = started && !finished && !isJourney && current && enemy;
   const isTypingWrong =
     typed.length > 0 && current && !answerCode.startsWith(typed);
+
+  useEffect(() => {
+    if (!journey) return;
+
+    function handleJourneyKeyDown(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        startJourneyBattle();
+      }
+    }
+
+    window.addEventListener("keydown", handleJourneyKeyDown);
+    return () => window.removeEventListener("keydown", handleJourneyKeyDown);
+  }, [journey]);
 
   useEffect(() => {
     setDebugHintOpen(false);
@@ -1664,35 +1713,34 @@ export default function App() {
         e.preventDefault();
         setAssistChargeCount((count) => {
           const next = Math.min(ASSIST_CHARGE_MAX, count + 1);
-          if (next >= ASSIST_CHARGE_MAX) {
+          if (next >= ASSIST_CHARGE_MAX && !assistChargeTriggeredRef.current) {
+            assistChargeTriggeredRef.current = true;
+            const pendingAction = pendingVictoryActionRef.current;
+            pendingVictoryActionRef.current = null;
             setAssistChargeFull(true);
+            setAssistChargeMode(false);
+            setTimeout(() => {
+              setAssistChargeFull(false);
+              setAssistChargeCount(0);
+              triggerAssist(companion, combo);
+              if (pendingVictory && pendingAction) {
+                setPendingVictory(false);
+                setTimeout(() => {
+                  pendingAction();
+                }, 2200);
+              } else {
+                startTimerAgain();
+              }
+            }, 300);
           }
           return next;
         });
-      }
-
-      if (e.code === "Enter" && assistChargeFull) {
-        e.preventDefault();
-        const pendingAction = pendingVictoryActionRef.current;
-        pendingVictoryActionRef.current = null;
-        setAssistChargeMode(false);
-        setAssistChargeFull(false);
-        setAssistChargeCount(0);
-        triggerAssist(companion, combo);
-        if (pendingVictory && pendingAction) {
-          setPendingVictory(false);
-          setTimeout(() => {
-            pendingAction();
-          }, 2200);
-        } else {
-          startTimerAgain();
-        }
       }
     }
 
     document.addEventListener("keydown", handleChargeKey);
     return () => document.removeEventListener("keydown", handleChargeKey);
-  }, [assistChargeMode, assistChargeFull, pendingVictory, companion, combo]);
+  }, [assistChargeMode, pendingVictory, companion, combo]);
 
   function focusInput() {
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -1750,7 +1798,7 @@ export default function App() {
       setWaveClearPopup(null);
       wavePopupTimerRef.current = null;
       onComplete?.();
-    }, 2000);
+    }, WAVE_POPUP_DURATION);
   }
 
   function startBgm() {
@@ -1935,10 +1983,19 @@ export default function App() {
     }, delay);
   }
 
-  function continueToNextBattle(nextCompletedCount, message, forcedEnemy = null, delay = 650, allowEffectChance = true) {
+  function continueToNextBattle(
+    nextCompletedCount,
+    message,
+    forcedEnemy = null,
+    delay = 650,
+    allowEffectChance = true,
+    skipBattleLog = false
+  ) {
     const resumeAction = { type: "journey", nextQuestionCount: nextCompletedCount, forcedEnemy, message };
 
-    setBattleLog(message);
+    if (!skipBattleLog) {
+      setBattleLog(message);
+    }
     setTimeout(() => {
       if (allowEffectChance && maybeOpenEffectChance(resumeAction, { allowReview: true })) {
         return;
@@ -1991,7 +2048,8 @@ export default function App() {
             `✨ レアチャンス！強敵 ${rareEnemy.name} が現れた！最後の呪文で捕まえにいこう。`,
             rareEnemy,
             650,
-            false
+            false,
+            true
           );
         });
         return;
@@ -2011,7 +2069,11 @@ export default function App() {
       showWaveClearPopup(wave, `ウェーブ${wave} クリア！ 次のウェーブが始まります…`, () => {
         continueToNextBattle(
           safeCompletedCount,
-          `🌊 ウェーブ${wave + 1}開始！次のコードモンスターを探しに行こう。`
+          `🌊 ウェーブ${wave + 1}開始！次のコードモンスターを探しに行こう。`,
+          null,
+          650,
+          true,
+          true
         );
       });
       return;
@@ -2096,6 +2158,8 @@ export default function App() {
     const totalQuestions = REQUIRED_QUESTIONS_PER_STAGE;
     const nextQuestionNumber = Math.min(nextQuestionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
 
+    journeyActionRef.current = { nextQuestionCount, forcedEnemy, customMessage };
+    journeySkipStartedRef.current = false;
     setJourney({
       mode: selectedMode,
       stageLabel: LEVELS[selectedLevel].label,
@@ -2111,9 +2175,18 @@ export default function App() {
           : "次のコードモンスターを探して移動中……"),
     });
 
-    journeyTimerRef.current = setTimeout(() => {
-      startNextBattle(nextQuestionCount, forcedEnemy, customMessage);
-    }, 3200);
+    journeyTimerRef.current = setTimeout(startJourneyBattle, 3200);
+  }
+
+  function startJourneyBattle() {
+    const action = journeyActionRef.current;
+    if (!action || journeySkipStartedRef.current) return;
+
+    journeySkipStartedRef.current = true;
+    if (journeyTimerRef.current) clearTimeout(journeyTimerRef.current);
+    journeyTimerRef.current = null;
+    journeyActionRef.current = null;
+    startNextBattle(action.nextQuestionCount, action.forcedEnemy, action.customMessage);
   }
 
   function resumeAfterEffect(resumeAction) {
@@ -2216,6 +2289,7 @@ export default function App() {
     setAssistChargeMode(false);
     setAssistChargeCount(0);
     setAssistChargeFull(false);
+    assistChargeTriggeredRef.current = false;
     setPendingVictory(false);
     pendingVictoryActionRef.current = null;
     setAssistActive(false);
@@ -2315,6 +2389,7 @@ export default function App() {
     if (!activeCompanion?.assistSkill) return false;
 
     clearInterval(timerRef.current);
+    assistChargeTriggeredRef.current = false;
     setAssistChargeMode(true);
     setAssistChargeCount(0);
     setAssistChargeFull(false);
@@ -2472,12 +2547,12 @@ export default function App() {
     const nextEnemyHp = Math.max(0, enemy.hp - damage);
     const nextCombo = combo + 1;
 
-    const gainedCastExp = Math.round(
-      applyTitleExpBonus(
-        (wasReview ? 8 : 5) + (selectedMode === "debug" ? 3 : 0),
-        activePassive
-      ) * expBonusMultiplier
-    );
+      const gainedCastExp = Math.round(
+        applyTitleExpBonus(
+          (wasReview ? 8 : 5) + (selectedMode === "debug" ? 3 : 0),
+          activePassive
+        ) * expBonusMultiplier * EXP_GLOBAL_MULTIPLIER
+      );
 
     setEnemy((prev) => ({
       ...prev,
@@ -2535,19 +2610,27 @@ export default function App() {
     if (nextEnemyHp <= 0) {
       const beforeLevel = getLevelInfoFromExp(save.exp).playerLevel;
       const gainedExp = Math.round(
-        applyTitleExpBonus(enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0), activePassive) * expBonusMultiplier
+        applyTitleExpBonus(enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0), activePassive)
+          * expBonusMultiplier
+          * EXP_GLOBAL_MULTIPLIER
       );
       const afterLevel = getLevelInfoFromExp(save.exp + gainedCastExp + gainedExp)
         .playerLevel;
       const shouldLevelUp = afterLevel > beforeLevel;
       const nextCompletedCount = Math.min(questionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
+      const defeatedIdsBefore = new Set(save.monstersDefeatedIds || []);
+      const shouldShowCompanionIntro =
+        !save.companionIntroShown && defeatedIdsBefore.size === 0 && Boolean(enemy.id);
 
       setSave((prev) => {
+        const nextDefeatedIds = Array.from(new Set([...(prev.monstersDefeatedIds || []), enemy.id].filter(Boolean)));
+        const shouldSetCompanionIntro = nextDefeatedIds.length >= 1 && !prev.companionIntroShown;
         const nextSave = {
           ...prev,
           exp: prev.exp + gainedExp,
           monstersDefeated: prev.monstersDefeated + 1,
-          monstersDefeatedIds: Array.from(new Set([...(prev.monstersDefeatedIds || []), enemy.id].filter(Boolean))),
+          monstersDefeatedIds: nextDefeatedIds,
+          companionIntroShown: shouldSetCompanionIntro ? true : prev.companionIntroShown,
           maxCombo: Math.max(prev.maxCombo, nextCombo),
         };
 
@@ -2565,13 +2648,16 @@ export default function App() {
           : `${enemy.name}を討伐！ ${gainedExp}EXP獲得！ ${
               shouldLevelUp ? "魔術師レベルアップ！" : "いい詠唱だった！"
             }`;
+        const battleMessage = shouldShowCompanionIntro
+          ? "🤝 相棒システム解放！ 討伐したモンスターを相棒として装備できるようになった。冒険モード選択画面の「相棒メニュー」から装備しよう。"
+          : defeatMessage;
 
         completeBattleProgress({
           nextCompletedCount,
           gainedExp,
           enemyName: enemy.name,
-          message: defeatMessage,
-          stageClearMessage: `${defeatMessage} そして冒険完走！ ${LEVELS[selectedLevel].stageName} クリア！`,
+          message: battleMessage,
+          stageClearMessage: `${battleMessage} そして冒険完走！ ${LEVELS[selectedLevel].stageName} クリア！`,
           shouldLevelUp,
         });
       };
@@ -2893,7 +2979,7 @@ export default function App() {
           alignItems: "center",
         }}
       >
-      {journey && <JourneyTransition journey={journey} />}
+      {journey && <JourneyTransition journey={journey} onAdvance={startJourneyBattle} />}
 
       {!journey && !started && !finished && (
         <div style={{ width: "100%", maxWidth: 1400, marginTop: 0 }}>
@@ -3065,6 +3151,7 @@ export default function App() {
                 monstersSeen={monstersSeen}
                 monstersDefeatedIds={monstersDefeatedIds}
                 linkedMonsterIds={save.linkedMonsterIds}
+                companionData={save.companionData}
                 onLinkMonster={handleLinkMonster}
                 initialFilters={save.monsterBookFilters}
                 onFiltersChange={(filters) => {
@@ -3213,7 +3300,7 @@ export default function App() {
               </div>
 
               <p className="assist-charge-label">
-                {assistChargeFull ? "✨ エンターで発動！！" : "スペース長押し でチャージ！"}
+                {assistChargeFull ? "✨ 満タン！自動発動！！" : "スペース長押し でチャージ！"}
               </p>
 
               <div className={`assist-charge-bar ${assistChargeFull ? "assist-charge-bar--full" : ""}`}>
@@ -4217,12 +4304,13 @@ function LevelClearScreen({
   );
 }
 
-function JourneyTransition({ journey }) {
+function JourneyTransition({ journey, onAdvance }) {
   const hero = journey.mode === "debug" ? "🐞🧙‍♂️" : "🧙‍♂️";
   const destination = journey.mode === "debug" ? "🐞" : "⚔️";
 
   return (
     <div
+      onClick={onAdvance}
       style={{
         width: "100%",
         maxWidth: 720,
@@ -4233,6 +4321,7 @@ function JourneyTransition({ journey }) {
         textAlign: "center",
         boxShadow: "0 24px 70px rgba(0,0,0,0.45)",
         boxSizing: "border-box",
+        cursor: "pointer",
       }}
     >
       <style>
@@ -5956,8 +6045,9 @@ function TransferCodePanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds
   );
 }
 
-function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds, onLinkMonster, initialFilters, onFiltersChange }) {
+function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds, companionData, onLinkMonster, initialFilters, onFiltersChange }) {
   const [selectedMonster, setSelectedMonster] = useState(null);
+  const [bookTab, setBookTab] = useState("base");
   const savedFilters = sanitizeMonsterBookFilters(initialFilters);
   const [statusFilter, setStatusFilter] = useState(savedFilters.status);
   const [rarityFilter, setRarityFilter] = useState(savedFilters.rarity);
@@ -5966,6 +6056,11 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
   const [linkCode, setLinkCode] = useState("");
   const [linkResult, setLinkResult] = useState(null);
   const entries = getMonsterBookEntries();
+  const evolvedEntries = getEvolvedBookEntries();
+  const ownedCompanions = companionData || {};
+  const ownedEvolvedCount = evolvedEntries.filter((monster) =>
+    Object.prototype.hasOwnProperty.call(ownedCompanions, monster.id)
+  ).length;
   const seenSet = new Set(monstersSeen || []);
   const defeatedSet = new Set(monstersDefeatedIds || []);
   const linkedSet = new Set(linkedMonsterIds || []);
@@ -6052,6 +6147,21 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
       if (!search) return true;
       return [monster.name, monster.type, monster.description].join(" ").toLowerCase().includes(search);
     });
+  const displayedEntries = bookTab === "base"
+    ? filteredEntries
+    : evolvedEntries.map((monster, index) => {
+      const owned = Object.prototype.hasOwnProperty.call(ownedCompanions, monster.id);
+      return {
+        monster,
+        number: index + 1,
+        seen: owned,
+        defeated: owned,
+        linked: false,
+        visible: owned,
+        statusClass: owned ? "defeated" : "unseen",
+        evolved: true,
+      };
+    });
 
   return (
     <div className="monster-book">
@@ -6061,13 +6171,52 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
           <div className="monster-book__lead">出会ったコードモンスターを確認できます。転送呪文でPC・スマホ・友達同士の図鑑連携もできます。</div>
         </div>
         <div className="monster-book__summary">
-          <span>発見 {discoveredCount} / {entries.length}</span>
-          <span>討伐 {defeatedCount} / {entries.length}</span>
-          <span>連携 {linkedOnlyCount}</span>
-          <span>表示 {filteredEntries.length} 件</span>
+          {bookTab === "base" ? (
+            <>
+              <span>発見 {discoveredCount} / {entries.length}</span>
+              <span>討伐 {defeatedCount} / {entries.length}</span>
+              <span>連携 {linkedOnlyCount}</span>
+              <span>表示 {filteredEntries.length} 件</span>
+            </>
+          ) : (
+            <>
+              <span>進化済み {ownedEvolvedCount} / {evolvedEntries.length}</span>
+              <span>表示 {evolvedEntries.length} 件</span>
+            </>
+          )}
         </div>
       </div>
 
+      <div role="tablist" aria-label="図鑑の種類" style={{ display: "flex", gap: 8, margin: "14px 0" }}>
+        {[
+          ["base", `通常モンスター (${entries.length})`],
+          ["evolved", `進化モンスター (${evolvedEntries.length})`],
+        ].map(([tab, label]) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={bookTab === tab}
+            key={tab}
+            onClick={() => {
+              setBookTab(tab);
+              setSelectedMonster(null);
+            }}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: `1px solid ${bookTab === tab ? "#38bdf8" : "#334155"}`,
+              background: bookTab === tab ? "rgba(14, 116, 144, 0.35)" : "rgba(15, 23, 42, 0.8)",
+              color: bookTab === tab ? "#e0f2fe" : "#94a3b8",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {bookTab === "base" && <>
       <form className="monster-book__filters" onSubmit={submitLinkCode}>
         <label className="monster-book__field monster-book__field--wide">
           <span>転送呪文（PC/スマホ共通）</span>
@@ -6130,42 +6279,75 @@ function MonsterBookPanel({ monstersSeen, monstersDefeatedIds, linkedMonsterIds,
           <input type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)} placeholder="名前・種族・説明文" />
         </label>
       </div>
+      </>}
 
       <div className="monster-book__grid">
-        {filteredEntries.map(({ monster, number, seen, defeated, linked, visible, statusClass }) => {
+        {displayedEntries.map(({ monster, number, seen, defeated, linked, visible, statusClass, evolved }) => {
           const rarityColor = RARITY_COLORS[monster.rarity] || "#94a3b8";
-          const statusLabel = defeated ? "討伐済み" : seen ? "発見済み" : linked ? "連携済み" : "未発見";
+          const statusLabel = evolved
+            ? (visible ? "進化済み" : "未進化")
+            : defeated ? "討伐済み" : seen ? "発見済み" : linked ? "連携済み" : "未発見";
+          const originalName = evolved ? getMonsterInfo(monster.evolvedFrom)?.name : null;
+          const displayName = visible
+            ? monster.name
+            : evolved
+              ? `？？？（${originalName || "元モンスター"}を進化させると解放）`
+              : "？？？";
           return (
             <button
               type="button"
               key={monster.id}
               className={["monster-book-card", visible ? "monster-book-card--seen" : "monster-book-card--unseen", `monster-book-card--${statusClass}`, monster.rarity === "rare" || monster.rarity === "epic" ? "monster-book-card--glow" : ""].filter(Boolean).join(" ")}
               style={{ "--rarity-color": rarityColor, "--rarity-glow": RARITY_GLOW[monster.rarity] || RARITY_GLOW.common }}
-              onClick={() => setSelectedMonster({ monster, number, seen, defeated, linked, visible })}
+              onClick={() => setSelectedMonster({ monster, number, seen, defeated, linked, visible, evolved })}
             >
               <div className="monster-book-card__top">
                 <span className="monster-book-card__number">No.{String(number).padStart(3, "0")}</span>
                 <span className="monster-book-card__status">{statusLabel}</span>
               </div>
               <div className="monster-book-card__imageBox">
-                {visible ? <img src={monster.image} alt={monster.name} className="monster-book-card__image" /> : <div className="monster-book-card__unknown">？？？</div>}
+                {evolved ? (
+                  <img
+                    src={monster.image}
+                    alt={displayName}
+                    className="monster-book-card__image"
+                    style={visible ? undefined : { filter: "brightness(0)" }}
+                  />
+                ) : visible ? (
+                  <img src={monster.image} alt={monster.name} className="monster-book-card__image" />
+                ) : (
+                  <div className="monster-book-card__unknown">？？？</div>
+                )}
               </div>
-              <div className="monster-book-card__name">{visible ? monster.name : "？？？"}</div>
+              <div className="monster-book-card__name">{displayName}</div>
               <div className="monster-book-card__meta">
                 <span>{RARITY_LABELS[monster.rarity] || monster.rarity}</span>
-                <span>{visible ? monster.habitat : "生息地不明"}</span>
+                <span>{evolved ? (visible ? "進化モンスター" : `元種: ${originalName || "不明"}`) : visible ? monster.habitat : "生息地不明"}</span>
               </div>
-              {seen && <div className="monster-book-card__type">{monster.type}</div>}
+              {seen && !evolved && <div className="monster-book-card__type">{monster.type}</div>}
             </button>
           );
         })}
       </div>
 
-      {filteredEntries.length === 0 && <div className="monster-book__empty">条件に合うモンスターはいません。フィルタや検索語を変えてみてください。</div>}
+      {displayedEntries.length === 0 && <div className="monster-book__empty">条件に合うモンスターはいません。フィルタや検索語を変えてみてください。</div>}
 
       {selectedMonster && (
         <FullScreenOverlay title={"🐲 " + (selectedMonster.visible ? selectedMonster.monster.name : "未発見モンスター")} onClose={() => setSelectedMonster(null)}>
-          <MonsterDetail monster={selectedMonster.monster} number={selectedMonster.number} seen={selectedMonster.seen} defeated={selectedMonster.defeated} linked={selectedMonster.linked} visible={selectedMonster.visible} />
+          {selectedMonster.evolved ? (
+            <div style={{ maxWidth: 680, margin: "0 auto", padding: 20, textAlign: "center", color: "#e2e8f0" }}>
+              <img
+                src={selectedMonster.monster.image}
+                alt={selectedMonster.visible ? selectedMonster.monster.name : "未発見の進化モンスター"}
+                style={{ width: 180, height: 180, objectFit: "contain", filter: selectedMonster.visible ? undefined : "brightness(0)" }}
+              />
+              <h2>{selectedMonster.visible ? selectedMonster.monster.name : `？？？（${getMonsterInfo(selectedMonster.monster.evolvedFrom)?.name || "元モンスター"}を進化させると解放）`}</h2>
+              <p>{selectedMonster.visible ? selectedMonster.monster.description : "相棒のスキルを使い続けると進化することがあります。"}</p>
+              {selectedMonster.visible && <p>✨ {selectedMonster.monster.assistSkill?.name}：{selectedMonster.monster.assistSkill?.effect}</p>}
+            </div>
+          ) : (
+            <MonsterDetail monster={selectedMonster.monster} number={selectedMonster.number} seen={selectedMonster.seen} defeated={selectedMonster.defeated} linked={selectedMonster.linked} visible={selectedMonster.visible} />
+          )}
         </FullScreenOverlay>
       )}
     </div>
@@ -6258,6 +6440,7 @@ function BeginnerGuide({ onBack, onGoAdventure }) {
             <li>正解すると敵にダメージ。不正解や時間切れではピンチになります。</li>
             <li>1ステージで決められた問題数をこなすとクリアです。</li>
             <li>図鑑には、出会ったモンスターや浄化したバグが記録されます。</li>
+            <li>討伐したモンスターは相棒として装備でき、戦闘をサポートしてくれます。</li>
           </ul>
         </>
       ),
@@ -6427,6 +6610,53 @@ function BeginnerGuide({ onBack, onGoAdventure }) {
           日本語キーボードでは多くの場合 <b>Shift + 7</b>。
           英語キーボードではEnterキー左あたりの <b>'</b> キーです。
           <code>'</code> と <code>’</code> は別物なので注意です。
+        </>
+      ),
+    },
+    {
+      id: "companion",
+      title: "🤝 相棒モンスターって？",
+      body: (
+        <>
+          <p>討伐したモンスターは「相棒」として1体装備できます。冒険モード選択画面の「相棒メニュー」から選びましょう。</p>
+          <ul>
+            <li>戦闘中にコンボを重ねると、相棒のアシストゲージが貯まります。</li>
+            <li>ゲージが満タンになるとチャージ画面になり、スペースキーを押し続けると相棒のスキルが自動で発動します。</li>
+            <li>相棒のスキルを何度も発動させると、進化することがあります。</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "evolution",
+      title: "🌟 モンスターの進化",
+      body: (
+        <>
+          <p>相棒として何度もスキルを発動させたモンスターは、やがて進化することがあります。</p>
+          <p>進化すると見た目とスキルが強化されます。どのモンスターがどう進化するかは、ぜひ実際に育てて確かめてみてください。</p>
+        </>
+      ),
+    },
+    {
+      id: "effect_chance",
+      title: "✨ タイピング効果チャンスって？",
+      body: (
+        <>
+          <p>一度クリアしたステージに再挑戦していると、時々「タイピング効果チャンス」が出現します。</p>
+          <p>指定されたコードを唱えると、HP回復やダメージ倍加などの特別なボーナス効果が発動します。見かけたら挑戦してみましょう。</p>
+        </>
+      ),
+    },
+    {
+      id: "wave",
+      title: "🌊 ウェーブ制について",
+      body: (
+        <>
+          <p>1つのステージは「ウェーブ」という3戦ずつのまとまりが3セット、合計9戦で進みます。</p>
+          <ul>
+            <li>ウェーブをクリアすると短いお知らせが出て、次のウェーブへ進みます。</li>
+            <li>9戦を終えると、確率で「レアチャンス」として強いモンスターが最後に現れることがあります。</li>
+          </ul>
         </>
       ),
     },

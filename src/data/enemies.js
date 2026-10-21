@@ -2594,11 +2594,15 @@ const MAX_LEVEL_INDEX = 3;
 
 export function isObtainableMonster(monster) {
   if (!monster.levels || monster.levels.length === 0) return true;
-  return monster.levels.some((level) => level <= MAX_LEVEL_INDEX);
+  return monster.levels.some((level) => level === "limited" || level <= MAX_LEVEL_INDEX);
 }
 
 export function getMonsterBookEntries() {
   return ENEMY_VARIANTS.filter(isObtainableMonster);
+}
+
+export function getEvolvedBookEntries() {
+  return EVOLVED_MONSTERS;
 }
 
 export function getMonsterInfo(monsterId) {
