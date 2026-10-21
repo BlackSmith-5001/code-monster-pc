@@ -2620,18 +2620,18 @@ export default function App() {
       triggerMonsterComment(enemy, "correct");
     }
 
-    if (nextEnemyHp <= 0) {
-      const spellRecord = {
-        code: answerCode,
-        hint: currentHint,
-        preview: getExecutionPreview(answerCode),
-      };
-      lastCastedSpellRef.current = spellRecord;
-      setLastCastedSpell(spellRecord);
-      setStageSpellLog((currentLog) => currentLog.some((spell) => spell.code === spellRecord.code)
-        ? currentLog
-        : [...currentLog, spellRecord]);
+    const spellRecord = {
+      code: answerCode,
+      hint: current.normalHint || current.hint || currentHint,
+      preview: getExecutionPreview(answerCode),
+    };
+    lastCastedSpellRef.current = spellRecord;
+    setLastCastedSpell(spellRecord);
+    setStageSpellLog((currentLog) => currentLog.some((spell) => spell.code === spellRecord.code)
+      ? currentLog
+      : [...currentLog, spellRecord]);
 
+    if (nextEnemyHp <= 0) {
       const beforeLevel = getLevelInfoFromExp(save.exp).playerLevel;
       const gainedExp = Math.round(
         applyTitleExpBonus(enemy.exp + nextCombo * 4 + (wasReview ? 10 : 0), activePassive)

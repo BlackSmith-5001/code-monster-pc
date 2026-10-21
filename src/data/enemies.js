@@ -2606,5 +2606,9 @@ export function getEvolvedBookEntries() {
 }
 
 export function getMonsterInfo(monsterId) {
-  return ENEMY_VARIANTS.find((monster) => monster.id === monsterId) || ENEMY_VARIANTS[0];
+  return (
+    ENEMY_VARIANTS.find((monster) => monster.id === monsterId) ||
+    EVOLVED_MONSTERS.find((monster) => monster.id === monsterId) ||
+    ENEMY_VARIANTS[0]
+  );
 }
