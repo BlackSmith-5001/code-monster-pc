@@ -104,9 +104,14 @@ Project-Hearthforge の一員として制作しています。
 - 🐙 作者 GitHub: https://github.com/BlackSmith-5001
 - 📝 作者 note: https://note.com/rapid_tucan2305
 
+## クレジット
+
+- BGM・効果音：魔王魂（https://maou.audio/）— [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+
 ## ライセンス
 
 - **ソースコード**（`src/`、`scripts/`、設定ファイル）は [MIT License](LICENSE) です。
-- **画像・音声・ロゴ・キャラクター・世界観・問題文と解説文**（`public/` 以下、および `src/data/` の文章データ）は、**MITの対象外**です。無断での転載・再配布・転用はご遠慮ください。
+- **画像・ロゴ・キャラクター・世界観・問題文と解説文**（`public/images/` 以下、および `src/data/` の文章データ）は、**MITの対象外**です。無断での転載・再配布・転用はご遠慮ください。
+- **音声**（`public/sounds/`）は、MITの対象外です。各提供元の利用規約に従います（上記クレジット参照）。音声ファイルを単体で取り出しての再配布はしないでください。
 
 プログラミング学習の参考にコードを読んだり、動かして遊んだりすることは自由です。
