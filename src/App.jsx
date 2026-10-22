@@ -4641,6 +4641,9 @@ function TitleMainMenu({
       </div>
 
       <div className="credit-line">presented by Project-Hearthforge ⚒️</div>
+      <div className="credit-line">
+        BGM・効果音：<a href="https://maou.audio/" target="_blank" rel="noopener noreferrer">魔王魂</a>
+      </div>
     </div>
   );
 }

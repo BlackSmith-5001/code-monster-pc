@@ -650,6 +650,11 @@
   text-align: center;
 }
 
+.credit-line a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .menu-screen {
   padding: 16px;
   border-radius: 16px;
