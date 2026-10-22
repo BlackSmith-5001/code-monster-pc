@@ -1891,7 +1891,6 @@ export default function App() {
     setEncounterDeck(newEncounterDeck);
     setEnemy(newEnemy);
     triggerMonsterComment(newEnemy, "appear");
-    triggerEpicBoyaki(newEnemy);
     setCurrent(firstQuestion);
     setPlayerHp(100);
     setCombo(0);
@@ -1907,6 +1906,7 @@ export default function App() {
     setTimeupStreak(0);
     resetEffectChanceState();
     resetAssistState();
+    triggerEpicBoyaki(newEnemy);
     setStarted(true);
     setFinished(false);
     setResultType(null);
@@ -1929,6 +1929,7 @@ export default function App() {
     resetWaveRunState();
     setJourney(null);
     setEncounterDeck([]);
+    setShishoBoyaki(null);
 
     resultSoundSeqRef.current += 1;
     stopActiveSounds();
@@ -2165,6 +2166,7 @@ export default function App() {
   }
 
   function beginJourneyToNext(nextQuestionCount, forcedEnemy = null, customMessage = null) {
+    setShishoBoyaki(null);
     const totalQuestions = REQUIRED_QUESTIONS_PER_STAGE;
     const nextQuestionNumber = Math.min(nextQuestionCount + 1, REQUIRED_QUESTIONS_PER_STAGE);
 
@@ -2296,6 +2298,7 @@ export default function App() {
   }
 
   function resetAssistState() {
+    setShishoBoyaki(null);
     setAssistGauge(0);
     setAssistChargeMode(false);
     setAssistChargeCount(0);
@@ -2769,6 +2772,7 @@ export default function App() {
 
     setEnemy(newEnemy);
     triggerMonsterComment(newEnemy, "appear");
+    setShishoBoyaki(null);
     triggerEpicBoyaki(newEnemy);
     setCurrent(nextQuestion);
     setFinished(false);
@@ -2891,6 +2895,7 @@ export default function App() {
     resetWaveRunState();
     setJourney(null);
     setEncounterDeck([]);
+    setShishoBoyaki(null);
 
     resultSoundSeqRef.current += 1;
     stopActiveSounds();
@@ -3496,6 +3501,7 @@ export default function App() {
               key={shishoBoyaki.key}
               className="shisho-boyaki-flow"
               style={{ top: `${shishoBoyaki.top}%` }}
+              onAnimationEnd={() => setShishoBoyaki(null)}
             >
               🧙‍♂️ {shishoBoyaki.text}
             </div>
