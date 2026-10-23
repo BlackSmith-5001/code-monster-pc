@@ -4,6 +4,8 @@
 
 > A typing RPG for Python beginners. Type short Python "spells" to defeat monsters, collect them, and learn the first stumbling blocks of Python (half-width spaces, quotes, colons). Built with React + Vite. Keyboard (JIS layout hints) required.
 
+**▶ [今すぐ遊ぶ](https://code-monster-pc.netlify.app/)**（PCのブラウザで動きます。キーボードが必要です）
+
 ## どんなゲーム？
 
 画面に出る **お手本コード**（例: `hp = 100`）を、そのまま入力して攻撃します。速く正確に打てるとクリティカル。倒しきれなかった敵には、同じ呪文をもう一度唱える **追撃チャンス** が発生します。

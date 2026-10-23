@@ -5215,7 +5215,7 @@ function TitleHero({
 
         <div className="title-links">
           <a
-            href="https://twitter.com/intent/tweet?text=PythonをRPGで学ぶゲーム「コードモンスター」遊んでみた！%20%23コードモンスター%20%23Python&url=https://polite-frangollo-ae7109.netlify.app/"
+            href="https://twitter.com/intent/tweet?text=PythonをRPGで学ぶゲーム「コードモンスター」遊んでみた！%20%23コードモンスター%20%23Python&url=https://code-monster-pc.netlify.app/"
             target="_blank"
             rel="noopener noreferrer"
             className="title-links__share"
